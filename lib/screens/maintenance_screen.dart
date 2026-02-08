@@ -10,25 +10,26 @@ class MaintenanceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.iosLightGrey,
-      appBar: AppBar(title: const Text('Maintenance'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Maintenance'),
+        backgroundColor: Colors.white,
+        centerTitle: true,
+      ),
       body: Consumer<VehicleProvider>(
         builder: (context, provider, child) {
-          if (provider.vehicles.isEmpty)
+          if (provider.vehicles.isEmpty) {
             return const Center(child: Text('Belum ada kendaraan.'));
-
+          }
           final vehicleId = provider.vehicles.first.id!;
           final items = provider.getItemsForVehicle(vehicleId);
+          final currentOdo = provider.vehicles.first.currentOdometer;
 
           return ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 20),
             itemCount: items.length,
             itemBuilder: (context, index) {
               final item = items[index];
-              final status = provider.getStatus(
-                item,
-                provider.vehicles.first.currentOdometer,
-              );
+              final status = provider.getStatus(item, currentOdo);
               final statusColor = AppTheme.getStatusColor(status);
 
               final categoryColor = _getCategoryColor(item.name);
@@ -48,6 +49,7 @@ class MaintenanceScreen extends StatelessWidget {
                         builder: (context) => EditMaintenanceScreen(
                           item: item,
                           vehicleId: vehicleId,
+                          currentOdometer: currentOdo,
                         ),
                       ),
                     );

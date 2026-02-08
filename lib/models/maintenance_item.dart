@@ -8,6 +8,8 @@ class MaintenanceItem {
   final int intervalMonth;
 
   final int iconCode;
+  final String? oilBrand;
+  final String? oilVolume;
 
   MaintenanceItem({
     this.id,
@@ -18,6 +20,8 @@ class MaintenanceItem {
     required this.intervalDistance,
     required this.intervalMonth,
     this.iconCode = 0xe1ab, // Default build icon
+    this.oilBrand,
+    this.oilVolume,
   });
 
   Map<String, dynamic> toMap() {
@@ -30,6 +34,8 @@ class MaintenanceItem {
       'intervalDistance': intervalDistance,
       'intervalMonth': intervalMonth,
       'iconCode': iconCode,
+      'oilBrand': oilBrand,
+      'oilVolume': oilVolume,
     };
   }
 
@@ -43,6 +49,8 @@ class MaintenanceItem {
       intervalDistance: map['intervalDistance'],
       intervalMonth: map['intervalMonth'],
       iconCode: map['iconCode'] ?? 0xe1ab,
+      oilBrand: map['oilBrand'],
+      oilVolume: map['oilVolume'],
     );
   }
 }

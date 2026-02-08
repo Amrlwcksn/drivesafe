@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/vehicle.dart';
 import '../models/maintenance_item.dart';
 import '../models/maintenance_log.dart';
 import '../services/database_service.dart';
+import '../services/notification_service.dart';
 
 enum MaintenanceStatus { aman, mendekati, wajibGanti }
 
@@ -11,9 +13,30 @@ class VehicleProvider with ChangeNotifier {
   List<Vehicle> _vehicles = [];
   Map<int, List<MaintenanceItem>> _maintenanceItems = {};
   List<MaintenanceLog> _logs = [];
+  List<Map<String, dynamic>> _distanceLogs = [];
+  String _username = '';
 
   List<Vehicle> get vehicles => _vehicles;
   List<MaintenanceLog> get logs => _logs;
+  List<Map<String, dynamic>> get distanceLogs => _distanceLogs;
+  String get username => _username;
+
+  VehicleProvider() {
+    loadUsername();
+  }
+
+  Future<void> loadUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    _username = prefs.getString('username') ?? '';
+    notifyListeners();
+  }
+
+  Future<void> setUsername(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('username', name);
+    _username = name;
+    notifyListeners();
+  }
 
   Future<void> fetchVehicles() async {
     _vehicles = await _dbService.getVehicles();
@@ -21,6 +44,7 @@ class VehicleProvider with ChangeNotifier {
     for (var vehicle in _vehicles) {
       await fetchMaintenanceItems(vehicle.id!);
     }
+    await checkMaintenanceStatus();
     notifyListeners();
   }
 
@@ -49,31 +73,75 @@ class VehicleProvider with ChangeNotifier {
         name: 'Oli Mesin',
         lastServiceDate: DateTime.now(),
         lastServiceOdometer: vehicle.currentOdometer,
-        intervalDistance: 4000,
-        intervalMonth: 6,
+        intervalDistance: 2000,
+        intervalMonth: 2,
         iconCode: 0xe463, // oil_barrel
       ),
     );
     await addMaintenanceItem(
       MaintenanceItem(
         vehicleId: id,
-        name: 'Ban',
+        name: 'Ban Depan',
         lastServiceDate: DateTime.now(),
         lastServiceOdometer: vehicle.currentOdometer,
-        intervalDistance: 20000,
-        intervalMonth: 24,
+        intervalDistance: 15000,
+        intervalMonth: 18,
         iconCode: 0xf0289, // tire_repair
       ),
     );
     await addMaintenanceItem(
       MaintenanceItem(
         vehicleId: id,
-        name: 'Rem',
+        name: 'Ban Belakang',
+        lastServiceDate: DateTime.now(),
+        lastServiceOdometer: vehicle.currentOdometer,
+        intervalDistance: 12000,
+        intervalMonth: 14,
+        iconCode: 0xf0289, // tire_repair
+      ),
+    );
+    await addMaintenanceItem(
+      MaintenanceItem(
+        vehicleId: id,
+        name: 'Tekanan Ban',
+        lastServiceDate: DateTime.now(),
+        lastServiceOdometer: vehicle.currentOdometer,
+        intervalDistance: 500, // Irrelevant, strictly recurring check
+        intervalMonth: 1,
+        iconCode: 0xf0289,
+      ),
+    );
+    await addMaintenanceItem(
+      MaintenanceItem(
+        vehicleId: id,
+        name: 'Kampas Rem',
+        lastServiceDate: DateTime.now(),
+        lastServiceOdometer: vehicle.currentOdometer,
+        intervalDistance: 8000,
+        intervalMonth: 8,
+        iconCode: 0xf89c, // minor_crash - usually used for brakes
+      ),
+    );
+    await addMaintenanceItem(
+      MaintenanceItem(
+        vehicleId: id,
+        name: 'Filter Udara',
         lastServiceDate: DateTime.now(),
         lastServiceOdometer: vehicle.currentOdometer,
         intervalDistance: 10000,
         intervalMonth: 12,
-        iconCode: 0xf89c, // minor_crash
+        iconCode: 0xf552, // air
+      ),
+    );
+    await addMaintenanceItem(
+      MaintenanceItem(
+        vehicleId: id,
+        name: vehicle.type == VehicleType.motor ? 'Rantai / CVT' : 'Fan Belt',
+        lastServiceDate: DateTime.now(),
+        lastServiceOdometer: vehicle.currentOdometer,
+        intervalDistance: 15000,
+        intervalMonth: 18,
+        iconCode: 0xf895, // settings_suggest (gear)
       ),
     );
     await addMaintenanceItem(
@@ -95,6 +163,9 @@ class VehicleProvider with ChangeNotifier {
     int index = _vehicles.indexWhere((v) => v.id == vehicleId);
     if (index != -1) {
       Vehicle v = _vehicles[index];
+      double added = newOdometer - v.currentOdometer;
+
+      // Update vehicle ID
       Vehicle updated = Vehicle(
         id: v.id,
         name: v.name,
@@ -103,7 +174,23 @@ class VehicleProvider with ChangeNotifier {
         currentOdometer: newOdometer,
       );
       await _dbService.updateVehicle(updated);
+
+      // Log Distance (Spec 4.3 & 7)
+      if (added > 0) {
+        await _dbService.insertDistanceLog(
+          vehicleId,
+          DateTime.now().toIso8601String(),
+          v.currentOdometer,
+          newOdometer,
+          added,
+        );
+      }
+
       _vehicles[index] = updated;
+
+      // Check for maintenance alerts after odometer update
+      await checkMaintenanceStatus();
+
       notifyListeners();
     }
   }
@@ -111,6 +198,44 @@ class VehicleProvider with ChangeNotifier {
   Future<void> fetchMaintenanceItems(int vehicleId) async {
     final items = await _dbService.getMaintenanceItems(vehicleId);
     _maintenanceItems[vehicleId] = items;
+    await fetchDistanceLogs(vehicleId);
+    notifyListeners();
+  }
+
+  Future<void> fetchDistanceLogs(int vehicleId) async {
+    _distanceLogs = await _dbService.getDistanceLogs(vehicleId);
+    notifyListeners();
+  }
+
+  Future<void> logMaintenance(MaintenanceLog log) async {
+    await _dbService.insertMaintenanceLog(log);
+
+    // Find vehicleId from maintenanceItemId
+    int? vehicleId;
+    _maintenanceItems.forEach((vid, items) {
+      if (items.any((i) => i.id == log.maintenanceItemId)) {
+        vehicleId = vid; // Found the vehicle
+      }
+    });
+
+    if (vehicleId != null) {
+      await fetchMaintenanceItems(vehicleId!);
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> resetData() async {
+    await _dbService.clearAllData();
+    _vehicles = [];
+    _maintenanceItems = {};
+    _logs = [];
+    _distanceLogs = [];
+    _username = '';
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('username');
+
     notifyListeners();
   }
 
@@ -188,6 +313,8 @@ class VehicleProvider with ChangeNotifier {
     double? intervalDistance,
     DateTime? lastServiceDate,
     double? lastServiceOdometer,
+    String? oilBrand,
+    String? oilVolume,
   }) async {
     // Find the item and its vehicleId
     int vehicleId = -1;
@@ -211,6 +338,8 @@ class VehicleProvider with ChangeNotifier {
         intervalDistance: intervalDistance ?? oldItem.intervalDistance,
         intervalMonth: oldItem.intervalMonth,
         iconCode: oldItem.iconCode,
+        oilBrand: oilBrand ?? oldItem.oilBrand,
+        oilVolume: oilVolume ?? oldItem.oilVolume,
       );
 
       await _dbService.updateMaintenanceItem(newItem);
@@ -307,14 +436,6 @@ class VehicleProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> resetData() async {
-    await _dbService.clearAllData();
-    _vehicles = [];
-    _maintenanceItems = {};
-    _logs = [];
-    notifyListeners();
-  }
-
   MaintenanceItem? getMaintenanceItemByName(int vehicleId, String name) {
     if (!_maintenanceItems.containsKey(vehicleId)) return null;
     try {
@@ -336,6 +457,28 @@ class VehicleProvider with ChangeNotifier {
 
     if (remaining <= 0) return 'WAJIB GANTI';
     return '${remaining.toInt()} km lagi';
+  }
+
+  Future<void> checkMaintenanceStatus() async {
+    if (_vehicles.isEmpty) return;
+
+    // Only check for the primary/first vehicle for now to avoid spam
+    final vehicle = _vehicles.first;
+    final items = await getItemsForVehicle(vehicle.id!);
+
+    for (var item in items) {
+      final status = getStatus(item, vehicle.currentOdometer);
+      if (status == MaintenanceStatus.wajibGanti) {
+        NotificationService().showNotification(
+          id: item.id ?? 0,
+          title: 'Perawatan Diperlukan!',
+          body:
+              '${item.name} pada ${vehicle.name} perlu segera diganti/servis.',
+        );
+      } else if (status == MaintenanceStatus.mendekati) {
+        // Optional: reduce frequency for "Approaching"
+      }
+    }
   }
 
   MaintenanceItem? getOilItem(int vehicleId) =>

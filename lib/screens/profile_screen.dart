@@ -38,9 +38,11 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Driver DriveSafe',
-                      style: TextStyle(
+                    Text(
+                      provider.username.isEmpty
+                          ? 'Driver DriveSafe'
+                          : provider.username,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -49,6 +51,14 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
+
+              _buildSection('PROFIL PENGGUNA'),
+              _buildSettingsTile(
+                icon: Icons.edit_rounded,
+                title: 'Edit Nama Profil',
+                onTap: () => _showEditUsernameDialog(context, provider),
+              ),
+              const SizedBox(height: 24),
 
               _buildSection('KENDARAAN SAYA'),
               if (vehicle != null) ...[
@@ -387,6 +397,39 @@ class ProfileScreen extends StatelessWidget {
         ),
         const Divider(height: 1, indent: 16),
       ],
+    );
+  }
+
+  void _showEditUsernameDialog(BuildContext context, VehicleProvider provider) {
+    final controller = TextEditingController(text: provider.username);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Nama Profil'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Username',
+            border: OutlineInputBorder(),
+          ),
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                provider.setUsername(controller.text.trim());
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
     );
   }
 

@@ -9,97 +9,192 @@ class HistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.iosLightGrey,
-      appBar: AppBar(title: const Text('Riwayat'), centerTitle: true),
-      body: Consumer<VehicleProvider>(
-        builder: (context, provider, child) {
-          final logs = provider.logs;
-
-          if (logs.isEmpty) {
-            return const Center(
-              child: Text(
-                'Belum ada riwayat.',
-                style: TextStyle(color: AppTheme.iosGrey),
-              ),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: AppTheme.iosLightGrey,
+        appBar: AppBar(
+          title: const Text(
+            'Riwayat',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.white,
+          elevation: 0,
+          bottom: const TabBar(
+            labelColor: AppTheme.iosBlue,
+            unselectedLabelColor: AppTheme.iosGrey,
+            indicatorColor: AppTheme.iosBlue,
+            tabs: [
+              Tab(text: 'Perawatan'),
+              Tab(text: 'Jarak Tempuh'),
+            ],
+          ),
+        ),
+        body: Consumer<VehicleProvider>(
+          builder: (context, provider, child) {
+            return TabBarView(
+              children: [
+                _buildMaintenanceLogs(provider.logs),
+                _buildDistanceLogs(provider.distanceLogs),
+              ],
             );
-          }
+          },
+        ),
+      ),
+    );
+  }
 
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            itemCount: logs.length,
-            itemBuilder: (context, index) {
-              final log = logs[index];
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+  Widget _buildMaintenanceLogs(List<dynamic> logs) {
+    if (logs.isEmpty) {
+      return const Center(
+        child: Text(
+          'Belum ada riwayat perawatan.',
+          style: TextStyle(color: AppTheme.iosGrey),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: logs.length,
+      itemBuilder: (context, index) {
+        final log = logs[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.iosBlue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.iosBlue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+                child: const Icon(
+                  Icons.build,
+                  color: AppTheme.iosBlue,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DateFormat('dd MMM yyyy').format(log.date),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.receipt_long_rounded,
-                      color: AppTheme.iosBlue,
-                      size: 22,
+                    const SizedBox(height: 4),
+                    Text(
+                      'Odometer: ${log.odometer.toInt()} KM',
+                      style: const TextStyle(
+                        color: AppTheme.iosGrey,
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                  title: Text(
-                    DateFormat('dd MMMM yyyy').format(log.date),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    if (log.notes.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(log.notes, style: const TextStyle(fontSize: 13)),
+                    ],
+                    if (log.oilBrand != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        'Odometer: ${log.odometer.toInt()} KM',
+                        'Oli: ${log.oilBrand} (${log.oilVolume ?? "-"} ml)',
                         style: const TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.iosGrey,
+                          fontSize: 12,
+                          color: Colors.orange,
                         ),
                       ),
-                      if (log.notes.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          log.notes,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                      if (log.oilBrand != null || log.oilVolume != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          '${log.oilBrand ?? "-"} | ${log.oilVolume ?? "-"} ML',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppTheme.iosOrange,
-                          ),
-                        ),
-                      ],
                     ],
-                  ),
+                  ],
                 ),
-              );
-            },
-          );
-        },
-      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDistanceLogs(List<Map<String, dynamic>> logs) {
+    if (logs.isEmpty) {
+      return const Center(
+        child: Text(
+          'Belum ada riwayat jarak tempuh.',
+          style: TextStyle(color: AppTheme.iosGrey),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: logs.length,
+      itemBuilder: (context, index) {
+        final log = logs[index];
+        final date = DateTime.parse(log['date']);
+        final added = log['addedDistance'] as double;
+        final newOdo = log['newOdometer'] as double;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.speed, color: Colors.green, size: 20),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DateFormat('dd MMM yyyy, HH:mm').format(date),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Posisi: ${newOdo.toInt()} KM',
+                      style: const TextStyle(
+                        color: AppTheme.iosGrey,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '+${added.toInt()} KM',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.green,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -1,303 +1,270 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../providers/vehicle_provider.dart';
 import '../models/vehicle.dart';
 import '../models/maintenance_item.dart';
 import '../theme/app_theme.dart';
-import 'package:intl/intl.dart';
+import 'add_maintenance_screen.dart';
+import 'edit_maintenance_screen.dart';
+import 'profile_screen.dart'; // Ensure this import exists or pointing to correct file
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Drivesafe'),
-        backgroundColor: Colors.white,
-        centerTitle: true,
-      ),
-      body: Consumer<VehicleProvider>(
-        builder: (context, provider, child) {
-          if (provider.vehicles.isEmpty) {
-            return _buildEmptyState();
-          }
+    return Consumer<VehicleProvider>(
+      builder: (context, provider, child) {
+        if (provider.vehicles.isEmpty) {
+          return Scaffold(
+            backgroundColor: AppTheme.iosLightGrey,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.no_crash, size: 64, color: AppTheme.iosGrey),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Belum ada kendaraan',
+                    style: TextStyle(color: AppTheme.iosGrey),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const ProfileScreen(), // Redirect to profile to add vehicle
+                        ),
+                      );
+                    },
+                    child: const Text('Tambah Kendaraan'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
 
-          final vehicle = provider.vehicles.first;
-          final items = provider.getItemsForVehicle(vehicle.id!);
+        final vehicle = provider.vehicles.first;
+        final items = provider.getItemsForVehicle(vehicle.id!);
+        // Calculate status counts
+        final criticalItems = items
+            .where(
+              (i) =>
+                  provider.getStatus(i, vehicle.currentOdometer) ==
+                  MaintenanceStatus.wajibGanti,
+            )
+            .toList();
+        final warningItems = items
+            .where(
+              (i) =>
+                  provider.getStatus(i, vehicle.currentOdometer) ==
+                  MaintenanceStatus.mendekati,
+            )
+            .toList();
 
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
+        final isHealthy = criticalItems.isEmpty && warningItems.isEmpty;
+
+        return Scaffold(
+          backgroundColor: AppTheme.iosLightGrey,
+          body: CustomScrollView(
             slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.all(16),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    // Odometer Section
-                    _buildOdometerCard(context, vehicle, provider),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'RINGKASAN KENDARAAN',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.iosGrey,
+              _buildSliverAppBar(context, provider.username, vehicle),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // 1. Status Hero Card
+                      _buildStatusHero(
+                        isHealthy,
+                        criticalItems.length,
+                        warningItems.length,
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                  ]),
+                      const SizedBox(height: 16),
+                      // 2. Odometer Action
+                      _buildOdometerAction(context, vehicle, provider),
+                      const SizedBox(height: 24),
+                      // 3. Maintenance Grid Header
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'KOMPONEN',
+                          style: TextStyle(
+                            color: AppTheme.iosGrey,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
                 ),
               ),
+              // 4. Maintenance Grid
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.0, // Square aesthetic
                     mainAxisSpacing: 12,
-                    childAspectRatio: 0.85, // More vertical cards
+                    crossAxisSpacing: 12,
                   ),
                   delegate: SliverChildBuilderDelegate((context, index) {
-                    return _buildSummaryCard(
-                      context,
-                      items[index],
-                      vehicle.currentOdometer,
-                      provider,
-                    );
+                    final item = items[index];
+                    return _buildGridItem(context, item, provider, vehicle);
                   }, childCount: items.length),
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
-          );
-        },
-      ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AddMaintenanceScreen(),
+                ),
+              );
+            },
+            backgroundColor: AppTheme.iosBlue,
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildOdometerCard(
+  Widget _buildSliverAppBar(
     BuildContext context,
+    String username,
     Vehicle vehicle,
-    VehicleProvider provider,
   ) {
-    return Stack(
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'ODOMETER',
-                    style: TextStyle(
-                      color: AppTheme.iosGrey,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () =>
-                        _showUpdateOdoDialog(context, provider, vehicle),
-                    child: const Text(
-                      'Update',
-                      style: TextStyle(
-                        color: AppTheme.iosBlue,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    NumberFormat.decimalPattern().format(
-                      vehicle.currentOdometer,
-                    ),
-                    style: const TextStyle(
-                      fontSize: 34,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -1,
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 6, left: 4),
-                    child: Text(
-                      'KM',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.iosGrey,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Positioned(
-          right: -20,
-          bottom: -20,
-          child: Opacity(
-            opacity: 0.05,
-            child: Icon(
-              vehicle.type == VehicleType.motor
-                  ? Icons.motorcycle_rounded
-                  : Icons.directions_car_rounded,
-              size: 120,
-              color: Colors.black,
+    return SliverAppBar(
+      expandedHeight: 80,
+      backgroundColor: AppTheme.iosLightGrey,
+      elevation: 0,
+      floating: true,
+      centerTitle: false,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Halo, $username',
+            style: const TextStyle(
+              color: AppTheme.iosGrey,
+              fontSize: 12,
+              fontWeight: FontWeight.normal,
             ),
           ),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+            child: Row(
+              children: [
+                Text(
+                  vehicle.name,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: AppTheme.iosBlue,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          icon: const CircleAvatar(
+            backgroundColor: Colors.white,
+            child: Icon(Icons.person, color: AppTheme.iosGrey),
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfileScreen()),
+            );
+          },
         ),
+        const SizedBox(width: 8),
       ],
     );
   }
 
-  Widget _buildSummaryCard(
-    BuildContext context,
-    MaintenanceItem item,
-    double currentOdometer,
-    VehicleProvider provider,
-  ) {
-    final distanceRemaining =
-        item.intervalDistance - (currentOdometer - item.lastServiceOdometer);
-    final monthsPassed =
-        DateTime.now().difference(item.lastServiceDate).inDays ~/ 30;
+  Widget _buildStatusHero(bool isHealthy, int criticalCount, int warningCount) {
+    Color bgColor = isHealthy
+        ? AppTheme.iosGreen
+        : (criticalCount > 0 ? AppTheme.iosRed : Colors.orange);
+    String title = isHealthy
+        ? 'Semua Sistem Aman'
+        : (criticalCount > 0 ? 'Perhatian Diperlukan' : 'Perawatan Mendekati');
+    String subtitle = isHealthy
+        ? 'Siap berkendara! Kendaraan dalam kondisi prima.'
+        : '$criticalCount komponen wajib ganti, $warningCount mendekati jadwal.';
 
-    // Determine which limit is closer (%)
-    final distanceProgress =
-        (currentOdometer - item.lastServiceOdometer) / item.intervalDistance;
-    final timeProgress = monthsPassed / item.intervalMonth;
-    final isDistanceCloser = distanceProgress >= timeProgress;
-
-    final iconData = _getAestheticIcon(item.name);
-    final categoryColor = _getCategoryColor(item.name);
-    final status = provider.getStatus(item, currentOdometer);
-    final statusColor = AppTheme.getStatusColor(status);
-
-    return InkWell(
-      onTap: () =>
-          _showMaintenanceInfoDialog(context, item, provider, currentOdometer),
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: categoryColor.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                iconData,
-                color: categoryColor,
-                size: 32, // Larger icon
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              item.name.toUpperCase(),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 14,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  isDistanceCloser ? Icons.speed : Icons.calendar_month,
-                  size: 13,
-                  color: AppTheme.iosGrey,
-                ),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    distanceRemaining <= 0
-                        ? 'Servis!'
-                        : '${(distanceRemaining / 1000).toStringAsFixed(1)}k KM',
-                    style: TextStyle(
-                      color: distanceRemaining <= 0
-                          ? AppTheme.iosRed
-                          : AppTheme.iosGrey,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Minimalist health dot
-            Container(
-              width: 24,
-              height: 4,
-              decoration: BoxDecoration(
-                color: statusColor,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showUpdateOdoDialog(
-    BuildContext context,
-    VehicleProvider provider,
-    Vehicle vehicle,
-  ) {
-    final controller = TextEditingController(
-      text: vehicle.currentOdometer.toInt().toString(),
-    );
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Update Odometer'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-          decoration: const InputDecoration(suffixText: 'KM'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: bgColor.withOpacity(0.4),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          TextButton(
-            onPressed: () {
-              final val = double.tryParse(controller.text);
-              if (val != null) {
-                provider.updateOdometer(vehicle.id!, val);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text(
-              'Simpan',
-              style: TextStyle(fontWeight: FontWeight.bold),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isHealthy ? Icons.check_circle : Icons.warning_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              height: 1.4,
             ),
           ),
         ],
@@ -305,138 +272,180 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
-    return const Center(child: Text('Belum ada kendaraan.'));
-  }
-
-  void _showMaintenanceInfoDialog(
+  Widget _buildOdometerAction(
     BuildContext context,
-    MaintenanceItem item,
+    Vehicle vehicle,
     VehicleProvider provider,
-    double currentOdo,
   ) {
-    final status = provider.getStatus(item, currentOdo);
-    final statusColor = AppTheme.getStatusColor(status);
-    final remaining =
-        item.intervalDistance - (currentOdo - item.lastServiceOdometer);
-    final lastServiceDate = DateFormat(
-      'dd MMM yyyy',
-    ).format(item.lastServiceDate);
+    final formatter = NumberFormat('#,###');
 
-    final iconData = _getAestheticIcon(item.name);
-    final categoryColor = _getCategoryColor(item.name);
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.iosLightGrey,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2.5),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: categoryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                const Text(
+                  'JARAK TEMPUH',
+                  style: TextStyle(
+                    color: AppTheme.iosGrey,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
                   ),
-                  child: Icon(iconData, color: categoryColor, size: 32),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.name.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      formatter.format(vehicle.currentOdometer.toInt()),
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
                       ),
-                      Text(
-                        remaining <= 0 ? 'STATUS: WAJIB GANTI' : 'STATUS: AMAN',
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 4, left: 4),
+                      child: Text(
+                        'KM',
                         style: TextStyle(
-                          color: remaining <= 0
-                              ? AppTheme.iosRed
-                              : AppTheme.iosGreen,
+                          fontSize: 14,
+                          color: AppTheme.iosGrey,
                           fontWeight: FontWeight.bold,
-                          fontSize: 13,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 32),
-            _buildInfoRow(
-              Icons.calendar_month,
-              'Terakhir Servis',
-              lastServiceDate,
-            ),
-            _buildInfoRow(
-              Icons.history,
-              'Odo Terakhir',
-              '${item.lastServiceOdometer.toInt()} KM',
-            ),
-            _buildInfoRow(
-              Icons.straighten,
-              'Interval Servis',
-              '${item.intervalDistance.toInt()} KM',
-            ),
-            _buildInfoRow(
-              Icons.timer,
-              'Sisa Jarak',
-              remaining <= 0 ? '0 KM' : '${remaining.toInt()} KM',
-            ),
-            const SizedBox(height: 24),
-            const Center(
-              child: Text(
-                'Ubah data melalui menu Maintenance',
-                style: TextStyle(
-                  color: AppTheme.iosGrey,
-                  fontSize: 13,
-                  fontStyle: FontStyle.italic,
-                ),
+          ),
+          ElevatedButton(
+            onPressed: () => _showUpdateOdoDialog(context, provider, vehicle),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.iosLightGrey,
+              foregroundColor: AppTheme.iosBlue,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-            const SizedBox(height: 16),
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGridItem(
+    BuildContext context,
+    MaintenanceItem item,
+    VehicleProvider provider,
+    Vehicle vehicle,
+  ) {
+    final status = provider.getStatus(item, vehicle.currentOdometer);
+    final statusColor = AppTheme.getStatusColor(status);
+    final iconData = _getAestheticIcon(item.name);
+
+    // Calculate progress (1.0 = fresh, 0.0 = expired)
+    double distanceDiff = vehicle.currentOdometer - item.lastServiceOdometer;
+    double progress = 1.0 - (distanceDiff / item.intervalDistance);
+    progress = progress.clamp(0.0, 1.0); // Ensure between 0 and 1
+
+    // Dynamic Color Logic based on Progress
+    Color dynamicColor;
+    if (progress > 0.5) {
+      dynamicColor = AppTheme.iosGreen;
+    } else if (progress > 0.2) {
+      dynamicColor = AppTheme.iosOrange;
+    } else {
+      dynamicColor = AppTheme.iosRed;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        _showItemDetailDialog(context, item, provider, vehicle);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Interactive Icon Health Bar
             SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppTheme.iosBlue,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              width: 56,
+              height: 56,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 1. Skeleton Layer (Grey Background)
+                  Icon(
+                    iconData,
+                    color: AppTheme.iosGrey.withOpacity(
+                      0.3,
+                    ), // Darker grey for better visibility
+                    size: 48,
                   ),
-                ),
-                child: const Text(
-                  'Tutup',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+                  // 2. Health Layer (Colored Fill using ShaderMask)
+                  ShaderMask(
+                    shaderCallback: (rect) {
+                      return LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, dynamicColor],
+                        stops: [1.0 - progress, 1.0 - progress],
+                      ).createShader(rect);
+                    },
+                    blendMode: BlendMode.srcIn,
+                    child: Icon(
+                      iconData,
+                      color:
+                          dynamicColor, // Color here is overridden by shader, but good for fallback
+                      size: 48,
+                    ),
+                  ),
+                ],
               ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              item.name,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              provider.getMaintenanceStatusText(vehicle.id!, item.name),
+              style: TextStyle(
+                color: status == MaintenanceStatus.aman
+                    ? AppTheme.iosGrey
+                    : statusColor,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -446,14 +455,14 @@ class DashboardScreen extends StatelessWidget {
 
   IconData _getAestheticIcon(String name) {
     final n = name.toLowerCase();
-    if (n.contains('oli') || n.contains('oil')) return Icons.opacity_rounded;
+    if (n.contains('oli') || n.contains('oil')) return Icons.water_drop_rounded;
     if (n.contains('ban') || n.contains('tire'))
       return Icons.tire_repair_rounded;
     if (n.contains('rem') || n.contains('brake'))
       return Icons.settings_backup_restore_rounded;
     if (n.contains('aki') || n.contains('battery'))
       return Icons.battery_charging_full_rounded;
-    if (n.contains('filter')) return Icons.air_rounded;
+    if (n.contains('filter') || n.contains('air')) return Icons.air_rounded;
     if (n.contains('busi') || n.contains('spark'))
       return Icons.flash_on_rounded;
     if (n.contains('rantai') || n.contains('chain')) return Icons.link_rounded;
@@ -464,34 +473,168 @@ class DashboardScreen extends StatelessWidget {
     return Icons.build_circle_rounded;
   }
 
-  Color _getCategoryColor(String name) {
-    final n = name.toLowerCase();
-    if (n.contains('oli') || n.contains('oil')) return Colors.orange;
-    if (n.contains('ban') || n.contains('tire')) return Colors.blue;
-    if (n.contains('rem') || n.contains('brake')) return Colors.red;
-    if (n.contains('aki') || n.contains('battery')) return Colors.purple;
-    if (n.contains('filter')) return Colors.teal;
-    if (n.contains('busi') || n.contains('spark')) return Colors.amber;
-    if (n.contains('rantai') || n.contains('chain')) return Colors.brown;
-    if (n.contains('gir') || n.contains('gear')) return Colors.blueGrey;
-    return AppTheme.iosBlue;
+  void _showItemDetailDialog(
+    BuildContext context,
+    MaintenanceItem item,
+    VehicleProvider provider,
+    Vehicle vehicle,
+  ) {
+    final status = provider.getStatus(item, vehicle.currentOdometer);
+    final statusColor = AppTheme.getStatusColor(status);
+    final remainingText = provider.getMaintenanceStatusText(
+      vehicle.id!,
+      item.name,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(_getAestheticIcon(item.name), color: statusColor),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                item.name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDialogRow('Status', status.name.toUpperCase(), statusColor),
+            const SizedBox(height: 8),
+            _buildDialogRow(
+              'Interval',
+              '${item.intervalDistance.toInt()} KM',
+              AppTheme.iosGrey,
+            ),
+            const SizedBox(height: 8),
+            _buildDialogRow('Sisa Jarak', remainingText, Colors.black87),
+            const SizedBox(height: 16),
+            const Text(
+              'Detail Terakhir:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Servis terakhir pada ${DateFormat('dd MMM yyyy').format(item.lastServiceDate)} di ${item.lastServiceOdometer.toInt()} KM.',
+              style: const TextStyle(fontSize: 13, color: AppTheme.iosGrey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Tutup',
+              style: TextStyle(color: AppTheme.iosGrey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog first
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditMaintenanceScreen(
+                    item: item,
+                    vehicleId: vehicle.id!,
+                    currentOdometer: vehicle.currentOdometer,
+                  ),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.iosBlue,
+              foregroundColor: Colors.white, // Explicitly set white text
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: AppTheme.iosGrey.withOpacity(0.7)),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: const TextStyle(color: AppTheme.iosGrey, fontSize: 15),
+  Widget _buildDialogRow(String label, String value, Color valueColor) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: AppTheme.iosGrey, fontSize: 14),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: valueColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
           ),
-          const Spacer(),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+        ),
+      ],
+    );
+  }
+
+  void _showUpdateOdoDialog(
+    BuildContext context,
+    VehicleProvider provider,
+    Vehicle vehicle,
+  ) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Update Jarak Tempuh'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Odometer Baru (KM)',
+            hintText: 'Contoh: 15000',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final newOdo = double.tryParse(controller.text);
+              if (newOdo != null) {
+                if (newOdo < vehicle.currentOdometer) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Odometer baru tidak boleh lebih kecil!'),
+                    ),
+                  );
+                } else {
+                  provider.updateOdometer(vehicle.id!, newOdo);
+                  Navigator.pop(context);
+                }
+              }
+            },
+            child: const Text('Simpan'),
           ),
         ],
       ),

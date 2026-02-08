@@ -8,11 +8,13 @@ import 'package:intl/intl.dart';
 class EditMaintenanceScreen extends StatefulWidget {
   final MaintenanceItem item;
   final int vehicleId;
+  final double currentOdometer;
 
   const EditMaintenanceScreen({
     super.key,
     required this.item,
     required this.vehicleId,
+    required this.currentOdometer,
   });
 
   @override
@@ -22,6 +24,7 @@ class EditMaintenanceScreen extends StatefulWidget {
 class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
   late TextEditingController _nameController;
   late TextEditingController _intervalController;
+  late TextEditingController _lastOdoController;
   late TextEditingController _brandController;
   late TextEditingController _volumeController;
   late DateTime _selectedDate;
@@ -33,11 +36,16 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
     _intervalController = TextEditingController(
       text: widget.item.intervalDistance.toInt().toString(),
     );
+    _lastOdoController = TextEditingController(
+      text: widget.item.lastServiceOdometer.toInt().toString(),
+    );
 
     // We'll need to fetch the latest brand/volume from the actual item model if we add those fields there,
     // or from the latest log. For now, let's assume we might want to edit these.
-    _brandController = TextEditingController();
-    _volumeController = TextEditingController();
+    _brandController = TextEditingController(text: widget.item.oilBrand ?? '');
+    _volumeController = TextEditingController(
+      text: widget.item.oilVolume ?? '',
+    );
     _selectedDate = widget.item.lastServiceDate;
   }
 
@@ -45,6 +53,7 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
   void dispose() {
     _nameController.dispose();
     _intervalController.dispose();
+    _lastOdoController.dispose();
     _brandController.dispose();
     _volumeController.dispose();
     super.dispose();
@@ -83,6 +92,29 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
         actions: [
           TextButton(
             onPressed: () {
+              setState(() {
+                _lastOdoController.text = widget.currentOdometer
+                    .toInt()
+                    .toString();
+                _selectedDate = DateTime.now();
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Data servis di-reset ke saat ini'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+            child: const Text(
+              'Reset',
+              style: TextStyle(
+                color: AppTheme.iosBlue,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
               final provider = Provider.of<VehicleProvider>(
                 context,
                 listen: false,
@@ -99,7 +131,12 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
                 intervalDistance:
                     double.tryParse(_intervalController.text) ??
                     widget.item.intervalDistance,
+                lastServiceOdometer:
+                    double.tryParse(_lastOdoController.text) ??
+                    widget.item.lastServiceOdometer,
                 lastServiceDate: _selectedDate,
+                oilBrand: _brandController.text,
+                oilVolume: _volumeController.text,
               );
 
               Navigator.pop(context);
@@ -123,6 +160,7 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
 
           const SizedBox(height: 32),
           _buildSection('TERAKHIR SERVIS'),
+          _buildTextField('KM SAAT SERVIS', _lastOdoController, isNumber: true),
           ListTile(
             tileColor: Colors.white,
             title: const Text(

@@ -22,23 +22,23 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'drivesafe.db');
     return await openDatabase(
       path,
-      version: 3,
+      version: 5, // Increment to force upgrade/reset
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      await db.execute(
-        'ALTER TABLE maintenance_items ADD COLUMN iconCode INTEGER DEFAULT 57771',
-      );
-    }
-    if (oldVersion < 3) {
-      await db.execute('ALTER TABLE maintenance_logs ADD COLUMN oilBrand TEXT');
-      await db.execute(
-        'ALTER TABLE maintenance_logs ADD COLUMN oilVolume TEXT',
-      );
+    // User requested "From 0", so we drop all tables on this upgrade to start fresh
+    if (newVersion >= 5) {
+      await db.execute('DROP TABLE IF EXISTS maintenance_logs');
+      await db.execute('DROP TABLE IF EXISTS maintenance_items');
+      await db.execute('DROP TABLE IF EXISTS items'); // Legacy check
+      await db.execute('DROP TABLE IF EXISTS vehicles');
+      await db.execute('DROP TABLE IF EXISTS distance_logs');
+
+      // Re-create from scratch
+      await _onCreate(db, newVersion);
     }
   }
 
@@ -53,6 +53,19 @@ class DatabaseService {
       )
     ''');
 
+    // Spec 4.3 & 7: distance_logs
+    await db.execute('''
+      CREATE TABLE distance_logs(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        vehicleId INTEGER,
+        date TEXT,
+        previousOdometer REAL,
+        newOdometer REAL,
+        addedDistance REAL,
+        FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE CASCADE
+      )
+    ''');
+
     await db.execute('''
       CREATE TABLE maintenance_items(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,6 +76,8 @@ class DatabaseService {
         intervalDistance REAL,
         intervalMonth INTEGER,
         iconCode INTEGER,
+        oilBrand TEXT,
+        oilVolume TEXT,
         FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE CASCADE
       )
     ''');
@@ -148,6 +163,33 @@ class DatabaseService {
     await db.delete('vehicles');
     await db.delete('maintenance_items');
     await db.delete('maintenance_logs');
+  }
+
+  Future<void> insertDistanceLog(
+    int vehicleId,
+    String date,
+    double prevOdo,
+    double newOdo,
+    double added,
+  ) async {
+    Database db = await database;
+    await db.insert('distance_logs', {
+      'vehicleId': vehicleId,
+      'date': date,
+      'previousOdometer': prevOdo,
+      'newOdometer': newOdo,
+      'addedDistance': added,
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getDistanceLogs(int vehicleId) async {
+    Database db = await database;
+    return await db.query(
+      'distance_logs',
+      where: 'vehicleId = ?',
+      whereArgs: [vehicleId],
+      orderBy: 'date DESC',
+    );
   }
 
   // Maintenance Log CRUD

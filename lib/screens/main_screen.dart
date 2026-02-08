@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/vehicle_provider.dart';
 import 'dashboard_screen.dart';
 import 'maintenance_screen.dart';
 import 'history_screen.dart';
@@ -20,6 +22,62 @@ class _MainScreenState extends State<MainScreen> {
     const HistoryScreen(),
     const ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Use addPostFrameCallback to show dialog after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkUsername();
+    });
+  }
+
+  void _checkUsername() {
+    final provider = context.read<VehicleProvider>();
+    if (provider.username.isEmpty) {
+      _showUsernameDialog(context, provider);
+    }
+  }
+
+  void _showUsernameDialog(BuildContext context, VehicleProvider provider) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: const Text('Selamat Datang!'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Silakan masukkan nama Anda untuk memulai.'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: 'Username',
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                if (controller.text.trim().isNotEmpty) {
+                  provider.setUsername(controller.text.trim());
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Simpan'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

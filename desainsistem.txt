@@ -1,0 +1,78 @@
+Analisis Desain Sistem
+Aplikasi Monitoring Maintenance Kendaraan
+
+1. Pendahuluan
+Aplikasi ini dirancang untuk membantu pengendara memantau kondisi dan perawatan kendaraan secara mandiri.
+Fokus utama adalah penyimpanan data lokal (offline-first), kemudahan penggunaan, dan pengingat perawatan.
+
+2. Tujuan Aplikasi
+- Mencatat jarak tempuh kendaraan
+- Mencatat riwayat perawatan
+- Memberikan pengingat perawatan
+- Menyediakan gambaran kesehatan kendaraan secara cepat
+
+3. Target Pengguna
+- Pengendara motor atau mobil pribadi
+- Pengguna harian yang ingin kendaraan tetap terawat
+- Pengguna yang ingin menyimpan histori kendaraan
+
+4. Fitur MVP
+4.1 Manajemen User
+- Nama pengguna custom
+
+4.2 Manajemen Kendaraan
+- Nama kendaraan
+- Jenis kendaraan
+- Tahun kendaraan
+- Jarak awal (odometer)
+
+4.3 Tracking Jarak Tempuh
+- Input jarak manual
+- Akumulasi jarak total
+
+4.4 Maintenance Kendaraan
+- Oli mesin
+- Ban depan & belakang
+- Tekanan ban
+- Aki
+- Sistem pengereman
+
+Setiap maintenance mencatat:
+- Tanggal terakhir
+- Jarak saat penggantian
+- Interval jarak / waktu
+
+4.5 Reminder & Status
+- Status warna (Aman, Mendekati, Wajib Ganti)
+- Notifikasi lokal
+
+5. Fitur Tambahan (Life Hack)
+- Catatan bengkel & foto struk
+- Mode jual kendaraan (export histori)
+- Checklist cepat sebelum perjalanan
+
+6. Struktur Sistem
+User
+ └── Kendaraan
+      ├── Data Kendaraan
+      ├── Jarak Tempuh
+      ├── Maintenance
+      └── Reminder
+
+7. Database Lokal
+- users
+- vehicles
+- distance_logs
+- maintenance_items
+- maintenance_logs
+
+8. Alur Pengguna
+- Input data awal
+- Tambah kendaraan
+- Set maintenance awal
+- Update jarak harian
+- Terima reminder
+
+
+Kesimpulan
+Dengan aplikasi ini pengguna dapat memantau kendaraan mereka secara berkala, dengan fitur input odometer yang terintegrasikan dengan set interval parameter-parameter yang sudah tadi disebutkan.
