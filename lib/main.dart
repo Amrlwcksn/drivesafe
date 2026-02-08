@@ -5,8 +5,11 @@ import 'providers/theme_provider.dart';
 import 'screens/main_screen.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+import 'services/notification_service.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().init();
   runApp(
     MultiProvider(
       providers: [

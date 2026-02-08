@@ -10,15 +10,52 @@ class NotificationService {
   NotificationService._internal();
 
   Future<void> init() async {
-    const AndroidInitializationSettings initializationSettingsAndroid =
+    const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
-
-    await flutterLocalNotificationsPlugin.initialize(
-      settings: initializationSettings,
+    const InitializationSettings initSettings = InitializationSettings(
+      android: androidSettings,
     );
+
+    await flutterLocalNotificationsPlugin.initialize(settings: initSettings);
+
+    // Request permissions for Android 13+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.requestNotificationsPermission();
+  }
+
+  Future<void> scheduleDailyReminder({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+          'daily_reminder_channel',
+          'Daily Reminders',
+          channelDescription: 'Daily reminders to update odometer',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+        );
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+    );
+
+    await flutterLocalNotificationsPlugin.periodicallyShow(
+      id: id,
+      title: title,
+      body: body,
+      repeatInterval: RepeatInterval.daily,
+      notificationDetails: platformChannelSpecifics,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
+  }
+
+  Future<void> cancelNotification(int id) async {
+    await flutterLocalNotificationsPlugin.cancel(id: id);
   }
 
   Future<void> showNotification({

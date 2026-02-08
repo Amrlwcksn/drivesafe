@@ -12,13 +12,48 @@ class VehicleProvider with ChangeNotifier {
   final DatabaseService _dbService = DatabaseService();
   List<Vehicle> _vehicles = [];
   Map<int, List<MaintenanceItem>> _maintenanceItems = {};
+  Map<int, List<Map<String, dynamic>>> _distanceLogs = {}; // Changed to Map
   List<MaintenanceLog> _logs = [];
-  List<Map<String, dynamic>> _distanceLogs = [];
+
+  int? _selectedVehicleId; // Track selected vehicle
   String _username = '';
+  bool _isReminderEnabled = true; // Default to true
 
   List<Vehicle> get vehicles => _vehicles;
   List<MaintenanceLog> get logs => _logs;
-  List<Map<String, dynamic>> get distanceLogs => _distanceLogs;
+  bool get isReminderEnabled => _isReminderEnabled;
+
+  // Get currently selected vehicle
+  Vehicle? get selectedVehicle {
+    if (_vehicles.isEmpty) return null;
+    if (_selectedVehicleId == null) return _vehicles.first;
+    try {
+      return _vehicles.firstWhere((v) => v.id == _selectedVehicleId);
+    } catch (_) {
+      return _vehicles.isNotEmpty ? _vehicles.first : null;
+    }
+  }
+
+  // Get logs specific to selected vehicle
+  List<MaintenanceLog> get selectedVehicleLogs {
+    final vehicle = selectedVehicle;
+    if (vehicle == null) return [];
+
+    final items = _maintenanceItems[vehicle.id] ?? [];
+    final itemIds = items.map((i) => i.id).toSet();
+
+    return _logs
+        .where((log) => itemIds.contains(log.maintenanceItemId))
+        .toList();
+  }
+
+  // Get distance logs specific to selected vehicle
+  List<Map<String, dynamic>> get distanceLogs {
+    final vehicle = selectedVehicle;
+    if (vehicle == null) return [];
+    return _distanceLogs[vehicle.id] ?? [];
+  }
+
   String get username => _username;
 
   VehicleProvider() {
@@ -28,6 +63,16 @@ class VehicleProvider with ChangeNotifier {
   Future<void> loadUsername() async {
     final prefs = await SharedPreferences.getInstance();
     _username = prefs.getString('username') ?? '';
+    _isReminderEnabled = prefs.getBool('isReminderEnabled') ?? true;
+
+    // Sync notification status on load
+    if (_isReminderEnabled) {
+      _scheduleOdometerReminder();
+    }
+
+    // Load vehicles and maintenance data from SQLite
+    await fetchVehicles();
+
     notifyListeners();
   }
 
@@ -38,12 +83,54 @@ class VehicleProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setReminderEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isReminderEnabled', enabled);
+    _isReminderEnabled = enabled;
+
+    if (enabled) {
+      _scheduleOdometerReminder();
+    } else {
+      await NotificationService().cancelNotification(999);
+    }
+
+    notifyListeners();
+  }
+
+  void _scheduleOdometerReminder() {
+    NotificationService().scheduleDailyReminder(
+      id: 999,
+      title: 'Update Odometer Anda!',
+      body:
+          'Jangan lupa untuk mencatat odometer kendaraan Anda hari ini agar perawatan tetap terpantau.',
+    );
+  }
+
+  void selectVehicle(int vehicleId) {
+    if (_vehicles.any((v) => v.id == vehicleId)) {
+      _selectedVehicleId = vehicleId;
+      notifyListeners();
+    }
+  }
+
   Future<void> fetchVehicles() async {
     _vehicles = await _dbService.getVehicles();
+
+    // Auto-select first vehicle if none selected or selection invalid
+    if (_vehicles.isNotEmpty) {
+      if (_selectedVehicleId == null ||
+          !_vehicles.any((v) => v.id == _selectedVehicleId)) {
+        _selectedVehicleId = _vehicles.first.id;
+      }
+    } else {
+      _selectedVehicleId = null;
+    }
+
     await fetchLogs();
     for (var vehicle in _vehicles) {
       await fetchMaintenanceItems(vehicle.id!);
     }
+    await _cleanUpObsoleteItems(); // Remove "Ban Depan/Belakang" if exist
     await checkMaintenanceStatus();
     notifyListeners();
   }
@@ -78,28 +165,7 @@ class VehicleProvider with ChangeNotifier {
         iconCode: 0xe463, // oil_barrel
       ),
     );
-    await addMaintenanceItem(
-      MaintenanceItem(
-        vehicleId: id,
-        name: 'Ban Depan',
-        lastServiceDate: DateTime.now(),
-        lastServiceOdometer: vehicle.currentOdometer,
-        intervalDistance: 15000,
-        intervalMonth: 18,
-        iconCode: 0xf0289, // tire_repair
-      ),
-    );
-    await addMaintenanceItem(
-      MaintenanceItem(
-        vehicleId: id,
-        name: 'Ban Belakang',
-        lastServiceDate: DateTime.now(),
-        lastServiceOdometer: vehicle.currentOdometer,
-        intervalDistance: 12000,
-        intervalMonth: 14,
-        iconCode: 0xf0289, // tire_repair
-      ),
-    );
+    // Keep only Tekanan Ban as requested
     await addMaintenanceItem(
       MaintenanceItem(
         vehicleId: id,
@@ -161,37 +227,63 @@ class VehicleProvider with ChangeNotifier {
 
   Future<void> updateOdometer(int vehicleId, double newOdometer) async {
     int index = _vehicles.indexWhere((v) => v.id == vehicleId);
-    if (index != -1) {
-      Vehicle v = _vehicles[index];
-      double added = newOdometer - v.currentOdometer;
 
-      // Update vehicle ID
-      Vehicle updated = Vehicle(
-        id: v.id,
-        name: v.name,
-        type: v.type,
-        year: v.year,
-        currentOdometer: newOdometer,
-      );
+    if (index == -1) {
+      print('Error: Vehicle not found with id: $vehicleId');
+      return;
+    }
+
+    Vehicle v = _vehicles[index];
+    double added = newOdometer - v.currentOdometer;
+
+    // Create updated vehicle
+    Vehicle updated = Vehicle(
+      id: v.id,
+      name: v.name,
+      type: v.type,
+      year: v.year,
+      currentOdometer: newOdometer,
+    );
+
+    try {
+      // Update database first and wait for completion
       await _dbService.updateVehicle(updated);
+
+      // Update local state only after database update succeeds
+      _vehicles[index] = updated;
 
       // Log Distance (Spec 4.3 & 7)
       if (added > 0) {
+        final dateStr = DateTime.now().toIso8601String();
         await _dbService.insertDistanceLog(
           vehicleId,
-          DateTime.now().toIso8601String(),
+          dateStr,
           v.currentOdometer,
           newOdometer,
           added,
         );
-      }
 
-      _vehicles[index] = updated;
+        // Update local state for HistoryScreen
+        if (!_distanceLogs.containsKey(vehicleId)) {
+          _distanceLogs[vehicleId] = [];
+        }
+        _distanceLogs[vehicleId]!.insert(0, {
+          'date': dateStr,
+          'previousOdometer': v.currentOdometer,
+          'newOdometer': newOdometer,
+          'addedDistance': added,
+        });
+      }
 
       // Check for maintenance alerts after odometer update
       await checkMaintenanceStatus();
 
+      // Notify listeners to update UI
       notifyListeners();
+    } catch (e) {
+      print('Error updating odometer: $e');
+      // Revert local state if database update failed
+      rethrow;
     }
   }
 
@@ -203,12 +295,14 @@ class VehicleProvider with ChangeNotifier {
   }
 
   Future<void> fetchDistanceLogs(int vehicleId) async {
-    _distanceLogs = await _dbService.getDistanceLogs(vehicleId);
-    notifyListeners();
+    final logs = await _dbService.getDistanceLogs(vehicleId);
+    _distanceLogs[vehicleId] = logs;
+    notifyListeners(); // Careful, this might trigger rebuilds during loop
   }
 
   Future<void> logMaintenance(MaintenanceLog log) async {
     await _dbService.insertMaintenanceLog(log);
+    _logs.insert(0, log); // Update local state
 
     // Find vehicleId from maintenanceItemId
     int? vehicleId;
@@ -230,7 +324,8 @@ class VehicleProvider with ChangeNotifier {
     _vehicles = [];
     _maintenanceItems = {};
     _logs = [];
-    _distanceLogs = [];
+    _distanceLogs = {};
+    _selectedVehicleId = null;
     _username = '';
 
     final prefs = await SharedPreferences.getInstance();
@@ -268,22 +363,41 @@ class VehicleProvider with ChangeNotifier {
   }
 
   MaintenanceStatus getStatus(MaintenanceItem item, double currentOdometer) {
-    double distanceDiff = currentOdometer - item.lastServiceOdometer;
-    double distanceRemaining = item.intervalDistance - distanceDiff;
+    double health = getItemHealth(item, currentOdometer);
 
-    // Time difference
-    int monthsPassed =
-        DateTime.now().difference(item.lastServiceDate).inDays ~/ 30;
-    int monthsRemaining = item.intervalMonth - monthsPassed;
-
-    if (distanceRemaining <= 0 || monthsRemaining <= 0) {
+    if (health <= 0.1) {
       return MaintenanceStatus.wajibGanti;
-    } else if (distanceRemaining <= (item.intervalDistance * 0.1) ||
-        monthsRemaining <= 1) {
+    } else if (health <= 0.3) {
       return MaintenanceStatus.mendekati;
     } else {
       return MaintenanceStatus.aman;
     }
+  }
+
+  double getItemHealth(MaintenanceItem item, double currentOdometer) {
+    // Defensive check: distance
+    double distProgress = 1.0;
+    if (item.intervalDistance > 0) {
+      double distanceDiff = currentOdometer - item.lastServiceOdometer;
+      distProgress = 1.0 - (distanceDiff / item.intervalDistance);
+    }
+
+    // Defensive check: time
+    double timeProgress = 1.0;
+    if (item.intervalMonth > 0) {
+      int daysPassed = DateTime.now().difference(item.lastServiceDate).inDays;
+      timeProgress = 1.0 - (daysPassed / (item.intervalMonth * 30));
+    }
+
+    // Use whichever is lower (more critical)
+    double health = distProgress < timeProgress ? distProgress : timeProgress;
+    return health.clamp(0.0, 1.0);
+  }
+
+  Color getItemHealthColor(double health) {
+    if (health > 0.5) return const Color(0xFF34C759); // iosGreen
+    if (health > 0.2) return const Color(0xFFFF9500); // iosOrange
+    return const Color(0xFFFF3B30); // iosRed
   }
 
   double calculateHealthScore(int vehicleId) {
@@ -447,16 +561,50 @@ class VehicleProvider with ChangeNotifier {
     }
   }
 
+  MaintenanceItem? getMaintenanceItemById(int id) {
+    for (var items in _maintenanceItems.values) {
+      try {
+        return items.firstWhere((i) => i.id == id);
+      } catch (_) {
+        // Continue searching
+      }
+    }
+    return null;
+  }
+
   String getMaintenanceStatusText(int vehicleId, String itemName) {
     final item = getMaintenanceItemByName(vehicleId, itemName);
     if (item == null) return 'Belum diatur';
 
     final vehicle = _vehicles.firstWhere((v) => v.id == vehicleId);
-    final distanceDiff = vehicle.currentOdometer - item.lastServiceOdometer;
-    final remaining = item.intervalDistance - distanceDiff;
 
-    if (remaining <= 0) return 'WAJIB GANTI';
-    return '${remaining.toInt()} km lagi';
+    // Distance calculation
+    final distanceDiff = vehicle.currentOdometer - item.lastServiceOdometer;
+    final distRemaining = item.intervalDistance - distanceDiff;
+
+    // Time calculation
+    final diffDays = DateTime.now().difference(item.lastServiceDate).inDays;
+    final totalDaysAvailable = item.intervalMonth * 30;
+    final daysRemaining = totalDaysAvailable - diffDays;
+
+    // Determine which status to display based on urgency
+    if (distRemaining <= 0 || daysRemaining <= 0) {
+      return 'WAJIB GANTI';
+    }
+
+    // If it's a "Tekanan Ban" or similar time-sensitive item, prefer showing days
+    // or if the time is closer than the distance proportional to their intervals
+    double distProgress = distRemaining / item.intervalDistance;
+    double timeProgress = daysRemaining / totalDaysAvailable;
+
+    if (timeProgress < distProgress) {
+      if (daysRemaining < 7) return '$daysRemaining hari lagi';
+      final weeks = (daysRemaining / 7).floor();
+      if (weeks < 4) return '$weeks minggu lagi';
+      return '${(daysRemaining / 30).floor()} bulan lagi';
+    }
+
+    return '${distRemaining.toInt()} km lagi';
   }
 
   Future<void> checkMaintenanceStatus() async {
@@ -485,4 +633,23 @@ class VehicleProvider with ChangeNotifier {
       getMaintenanceItemByName(vehicleId, 'oli');
   String getOilStatusText(int vehicleId) =>
       getMaintenanceStatusText(vehicleId, 'oli');
+
+  Future<void> _cleanUpObsoleteItems() async {
+    bool changed = false;
+    for (var vehicleId in _maintenanceItems.keys) {
+      final toRemove = _maintenanceItems[vehicleId]!.where((item) {
+        final name = item.name.toLowerCase();
+        return name == 'ban depan' || name == 'ban belakang';
+      }).toList();
+
+      for (var item in toRemove) {
+        if (item.id != null) {
+          await _dbService.deleteMaintenanceItem(item.id!);
+          _maintenanceItems[vehicleId]!.remove(item);
+          changed = true;
+        }
+      }
+    }
+    if (changed) notifyListeners();
+  }
 }

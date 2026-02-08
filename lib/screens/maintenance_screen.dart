@@ -20,17 +20,19 @@ class MaintenanceScreen extends StatelessWidget {
           if (provider.vehicles.isEmpty) {
             return const Center(child: Text('Belum ada kendaraan.'));
           }
-          final vehicleId = provider.vehicles.first.id!;
+          final vehicle = provider.selectedVehicle;
+          if (vehicle == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final vehicleId = vehicle.id!;
           final items = provider.getItemsForVehicle(vehicleId);
-          final currentOdo = provider.vehicles.first.currentOdometer;
+          final currentOdo = vehicle.currentOdometer;
 
           return ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 20),
             itemCount: items.length,
             itemBuilder: (context, index) {
               final item = items[index];
-              final status = provider.getStatus(item, currentOdo);
-              final statusColor = AppTheme.getStatusColor(status);
 
               final categoryColor = _getCategoryColor(item.name);
               final iconData = _getAestheticIcon(item.name);
@@ -83,7 +85,45 @@ class MaintenanceScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  trailing: Icon(Icons.circle, color: statusColor, size: 12),
+                  trailing: SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          value: 1.0,
+                          color: AppTheme.iosLightGrey,
+                          strokeWidth: 4,
+                        ),
+                        Builder(
+                          builder: (context) {
+                            double distanceDiff =
+                                currentOdo - item.lastServiceOdometer;
+                            double progress =
+                                1.0 - (distanceDiff / item.intervalDistance);
+                            progress = progress.clamp(0.0, 1.0);
+
+                            Color dynamicColor;
+                            if (progress > 0.5) {
+                              dynamicColor = AppTheme.iosGreen;
+                            } else if (progress > 0.2) {
+                              dynamicColor = AppTheme.iosOrange;
+                            } else {
+                              dynamicColor = AppTheme.iosRed;
+                            }
+
+                            return CircularProgressIndicator(
+                              value: progress,
+                              color: dynamicColor,
+                              strokeWidth: 4,
+                              strokeCap: StrokeCap.round,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               );
             },

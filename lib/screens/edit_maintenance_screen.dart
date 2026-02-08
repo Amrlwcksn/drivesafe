@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/vehicle_provider.dart';
 import '../models/maintenance_item.dart';
+import '../models/maintenance_log.dart';
 import '../theme/app_theme.dart';
 import 'package:intl/intl.dart';
 
@@ -125,6 +126,7 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
               // Taking a simple approach: if they change date/odo, we trigger a 'completion' or update.
 
               // For this task, let's just implement the UI and simple update logic.
+              // 1. Update the Item (Definition & Status)
               provider.updateMaintenanceItem(
                 widget.item.id!,
                 name: _nameController.text,
@@ -138,6 +140,34 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
                 oilBrand: _brandController.text,
                 oilVolume: _volumeController.text,
               );
+
+              // 2. Check if this counts as a "New Service" (Log it)
+              // If the Last Service Odometer or Date has changed, we assume it's a service entry.
+              final newLastOdo =
+                  double.tryParse(_lastOdoController.text) ??
+                  widget.item.lastServiceOdometer;
+
+              if (newLastOdo != widget.item.lastServiceOdometer ||
+                  _selectedDate != widget.item.lastServiceDate) {
+                // Create a log entry
+                // We need to import MaintenanceLog first.
+                // Since we can't easily add imports in this partial tool,
+                // we'll rely on VehicleProvider to allow a helper method or
+                // assume we can use the provider's logMaintenance with a constructed object.
+                // NOTE: EditMaintenanceScreen imports MaintenanceItem but likely not MaintenanceLog?
+                // Step 2357 shows imports: provider, item, theme, intl. NO maintenance_log.dart.
+                // I need to add the import first!
+                final log = MaintenanceLog(
+                  maintenanceItemId: widget.item.id!,
+                  date: _selectedDate,
+                  odometer: newLastOdo,
+                  notes: 'Pembaruan manual',
+                  oilBrand: isOil ? _brandController.text : null,
+                  oilVolume: isOil ? _volumeController.text : null,
+                );
+
+                provider.logMaintenance(log);
+              }
 
               Navigator.pop(context);
             },

@@ -45,9 +45,10 @@ class MaintenanceItem {
       vehicleId: map['vehicleId'],
       name: map['name'],
       lastServiceDate: DateTime.parse(map['lastServiceDate']),
-      lastServiceOdometer: map['lastServiceOdometer'],
-      intervalDistance: map['intervalDistance'],
-      intervalMonth: map['intervalMonth'],
+      lastServiceOdometer:
+          (map['lastServiceOdometer'] as num?)?.toDouble() ?? 0.0,
+      intervalDistance: (map['intervalDistance'] as num?)?.toDouble() ?? 0.0,
+      intervalMonth: map['intervalMonth'] ?? 0,
       iconCode: map['iconCode'] ?? 0xe1ab,
       oilBrand: map['oilBrand'],
       oilVolume: map['oilVolume'],

@@ -35,8 +35,10 @@ class HistoryScreen extends StatelessWidget {
           builder: (context, provider, child) {
             return TabBarView(
               children: [
-                _buildMaintenanceLogs(provider.logs),
-                _buildDistanceLogs(provider.distanceLogs),
+                _buildMaintenanceLogs(provider.selectedVehicleLogs, provider),
+                _buildDistanceLogs(
+                  provider.distanceLogs,
+                ), // New getter already returns filtered
               ],
             );
           },
@@ -45,7 +47,7 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMaintenanceLogs(List<dynamic> logs) {
+  Widget _buildMaintenanceLogs(List<dynamic> logs, VehicleProvider provider) {
     if (logs.isEmpty) {
       return const Center(
         child: Text(
@@ -75,8 +77,13 @@ class HistoryScreen extends StatelessWidget {
                   color: AppTheme.iosBlue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
-                  Icons.build,
+                child: Icon(
+                  _getIconForName(
+                    provider
+                            .getMaintenanceItemById(log.maintenanceItemId)
+                            ?.name ??
+                        '',
+                  ),
                   color: AppTheme.iosBlue,
                   size: 20,
                 ),
@@ -87,7 +94,10 @@ class HistoryScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      DateFormat('dd MMM yyyy').format(log.date),
+                      provider
+                              .getMaintenanceItemById(log.maintenanceItemId)
+                              ?.name ??
+                          'Komponen Terhapus',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -95,7 +105,7 @@ class HistoryScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Odometer: ${log.odometer.toInt()} KM',
+                      '${DateFormat('dd MMM yyyy').format(log.date)} • ${log.odometer.toInt()} KM',
                       style: const TextStyle(
                         color: AppTheme.iosGrey,
                         fontSize: 12,
@@ -140,8 +150,8 @@ class HistoryScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final log = logs[index];
         final date = DateTime.parse(log['date']);
-        final added = log['addedDistance'] as double;
-        final newOdo = log['newOdometer'] as double;
+        final added = (log['addedDistance'] as num).toDouble();
+        final newOdo = (log['newOdometer'] as num).toDouble();
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -196,5 +206,29 @@ class HistoryScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  IconData _getIconForName(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('oli') || n.contains('oil')) return Icons.water_drop_rounded;
+    if (n.contains('ban') || n.contains('tire'))
+      return Icons.tire_repair_rounded;
+    if (n.contains('rem') || n.contains('brake')) {
+      return Icons.settings_backup_restore_rounded;
+    }
+    if (n.contains('aki') || n.contains('battery')) {
+      return Icons.battery_charging_full_rounded;
+    }
+    if (n.contains('filter') || n.contains('air')) return Icons.air_rounded;
+    if (n.contains('busi') || n.contains('spark'))
+      return Icons.flash_on_rounded;
+    if (n.contains('rantai') || n.contains('chain')) return Icons.link_rounded;
+    if (n.contains('gir') || n.contains('gear')) {
+      return Icons.settings_suggest_rounded;
+    }
+    if (n.contains('radiator') || n.contains('coolant')) {
+      return Icons.ac_unit_rounded;
+    }
+    return Icons.build_circle_rounded;
   }
 }

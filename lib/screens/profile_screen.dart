@@ -14,10 +14,6 @@ class ProfileScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Profil'), centerTitle: true),
       body: Consumer<VehicleProvider>(
         builder: (context, provider, child) {
-          final vehicle = provider.vehicles.isNotEmpty
-              ? provider.vehicles.first
-              : null;
-
           return ListView(
             padding: const EdgeInsets.symmetric(vertical: 24),
             children: [
@@ -61,33 +57,39 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               _buildSection('KENDARAAN SAYA'),
-              if (vehicle != null) ...[
-                Container(
-                  color: Colors.white,
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.iosBlue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+              if (provider.vehicles.isNotEmpty) ...[
+                ...provider.vehicles.map(
+                  (vehicle) => Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    color: Colors.white,
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.iosBlue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          vehicle.type == VehicleType.motor
+                              ? Icons.motorcycle_rounded
+                              : Icons.directions_car_rounded,
+                          color: AppTheme.iosBlue,
+                        ),
                       ),
-                      child: Icon(
-                        vehicle.type == VehicleType.motor
-                            ? Icons.motorcycle_rounded
-                            : Icons.directions_car_rounded,
-                        color: AppTheme.iosBlue,
+                      title: Text(
+                        vehicle.name,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                    ),
-                    title: Text(
-                      vehicle.name,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      '${vehicle.year} | ${vehicle.type.name.toUpperCase()}',
-                    ),
-                    trailing: const Icon(
-                      Icons.chevron_right,
-                      color: AppTheme.iosGrey,
+                      subtitle: Text(
+                        '${vehicle.year} | ${vehicle.type.name.toUpperCase()}',
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: AppTheme.iosGrey,
+                      ),
+                      onTap: () {
+                        // Optional: Navigate to vehicle detail or edit
+                      },
                     ),
                   ),
                 ),
@@ -100,8 +102,11 @@ class ProfileScreen extends StatelessWidget {
               _buildSection('PENGATURAN'),
               _buildSettingsTile(
                 icon: Icons.notifications_rounded,
-                title: 'Notifikasi',
-                trailing: Switch.adaptive(value: true, onChanged: (_) {}),
+                title: 'Notifikasi Update Odometer',
+                trailing: Switch.adaptive(
+                  value: provider.isReminderEnabled,
+                  onChanged: (val) => provider.setReminderEnabled(val),
+                ),
               ),
               _buildSettingsTile(
                 icon: Icons.delete_forever_rounded,

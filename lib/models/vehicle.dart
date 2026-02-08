@@ -31,7 +31,7 @@ class Vehicle {
       name: map['name'],
       type: VehicleType.values[map['type']],
       year: map['year'],
-      currentOdometer: map['currentOdometer'],
+      currentOdometer: (map['currentOdometer'] as num).toDouble(),
     );
   }
 }
