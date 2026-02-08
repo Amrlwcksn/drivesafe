@@ -1,0 +1,133 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/vehicle_provider.dart';
+import '../theme/app_theme.dart';
+import 'edit_maintenance_screen.dart';
+
+class MaintenanceScreen extends StatelessWidget {
+  const MaintenanceScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.iosLightGrey,
+      appBar: AppBar(title: const Text('Maintenance'), centerTitle: true),
+      body: Consumer<VehicleProvider>(
+        builder: (context, provider, child) {
+          if (provider.vehicles.isEmpty)
+            return const Center(child: Text('Belum ada kendaraan.'));
+
+          final vehicleId = provider.vehicles.first.id!;
+          final items = provider.getItemsForVehicle(vehicleId);
+
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              final status = provider.getStatus(
+                item,
+                provider.vehicles.first.currentOdometer,
+              );
+              final statusColor = AppTheme.getStatusColor(status);
+
+              final categoryColor = _getCategoryColor(item.name);
+              final iconData = _getAestheticIcon(item.name);
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ListTile(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditMaintenanceScreen(
+                          item: item,
+                          vehicleId: vehicleId,
+                        ),
+                      ),
+                    );
+                  },
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: categoryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(iconData, color: categoryColor, size: 24),
+                  ),
+                  title: Text(
+                    item.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Row(
+                    children: [
+                      Icon(Icons.straighten, size: 12, color: AppTheme.iosGrey),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Interval: ${item.intervalDistance.toInt()} KM',
+                        style: const TextStyle(
+                          color: AppTheme.iosGrey,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  trailing: Icon(Icons.circle, color: statusColor, size: 12),
+                ),
+              );
+            },
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Add logic would go here
+        },
+        backgroundColor: AppTheme.iosBlue,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  IconData _getAestheticIcon(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('oli') || n.contains('oil')) return Icons.opacity_rounded;
+    if (n.contains('ban') || n.contains('tire'))
+      return Icons.tire_repair_rounded;
+    if (n.contains('rem') || n.contains('brake'))
+      return Icons.settings_backup_restore_rounded;
+    if (n.contains('aki') || n.contains('battery'))
+      return Icons.battery_charging_full_rounded;
+    if (n.contains('filter')) return Icons.air_rounded;
+    if (n.contains('busi') || n.contains('spark'))
+      return Icons.flash_on_rounded;
+    if (n.contains('rantai') || n.contains('chain')) return Icons.link_rounded;
+    if (n.contains('gir') || n.contains('gear'))
+      return Icons.settings_suggest_rounded;
+    if (n.contains('radiator') || n.contains('coolant'))
+      return Icons.ac_unit_rounded;
+    return Icons.build_circle_rounded;
+  }
+
+  Color _getCategoryColor(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('oli') || n.contains('oil')) return Colors.orange;
+    if (n.contains('ban') || n.contains('tire')) return Colors.blue;
+    if (n.contains('rem') || n.contains('brake')) return Colors.red;
+    if (n.contains('aki') || n.contains('battery')) return Colors.purple;
+    if (n.contains('filter')) return Colors.teal;
+    if (n.contains('busi') || n.contains('spark')) return Colors.amber;
+    if (n.contains('rantai') || n.contains('chain')) return Colors.brown;
+    if (n.contains('gir') || n.contains('gear')) return Colors.blueGrey;
+    return AppTheme.iosBlue;
+  }
+}
