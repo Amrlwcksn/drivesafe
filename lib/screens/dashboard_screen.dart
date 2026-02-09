@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -6,177 +7,176 @@ import '../providers/vehicle_provider.dart';
 import '../models/vehicle.dart';
 import '../models/maintenance_item.dart';
 import '../theme/app_theme.dart';
-import 'add_maintenance_screen.dart';
+import '../widgets/glass_container.dart';
 import 'edit_maintenance_screen.dart';
-import 'profile_screen.dart'; // Ensure this import exists or pointing to correct file
+import 'profile_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<VehicleProvider>(
-      builder: (context, provider, child) {
-        if (provider.vehicles.isEmpty) {
-          return Scaffold(
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.no_crash, size: 64, color: AppTheme.iosGrey),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Belum ada kendaraan',
-                    style: TextStyle(color: AppTheme.iosGrey),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const ProfileScreen(), // Redirect to profile to add vehicle
-                        ),
-                      );
-                    },
-                    child: const Text('Tambah Kendaraan'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        final vehicle = provider.selectedVehicle;
-        if (vehicle == null) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        final items = provider.getItemsForVehicle(vehicle.id!);
-        // Calculate status counts
-        final criticalItems = items
-            .where(
-              (i) =>
-                  provider.getStatus(i, vehicle.currentOdometer) ==
-                  MaintenanceStatus.wajibGanti,
-            )
-            .toList();
-        final warningItems = items
-            .where(
-              (i) =>
-                  provider.getStatus(i, vehicle.currentOdometer) ==
-                  MaintenanceStatus.mendekati,
-            )
-            .toList();
-
-        final isHealthy = criticalItems.isEmpty && warningItems.isEmpty;
-
-        return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: CustomScrollView(
-            slivers: [
-              _buildSliverAppBar(context, provider, vehicle),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+    return Container(
+      decoration: AppTheme.getScaffoldDecoration(context),
+      child: Consumer<VehicleProvider>(
+        builder: (context, provider, child) {
+          if (provider.vehicles.isEmpty) {
+            return Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Center(
+                child: GlassContainer(
+                  padding: const EdgeInsets.all(32),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 1. Odometer Action (Moved to Top)
-                      _buildOdometerAction(context, vehicle, provider),
-                      const SizedBox(height: 16),
-                      // 2. Status Hero Card
-                      _buildStatusHero(
-                        isHealthy,
-                        criticalItems.length,
-                        warningItems.length,
+                      const Icon(
+                        Icons.no_crash,
+                        size: 64,
+                        color: AppTheme.iosGrey,
                       ),
                       const SizedBox(height: 16),
-                      // 3. Safety Awareness Card
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.iosBlue.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppTheme.iosBlue.withOpacity(0.1),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.info_outline_rounded,
-                              color: AppTheme.iosBlue,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Aplikasi hanya alat bantu. Selalu cek kondisi fisik kendaraan secara langsung sebelum berkendara.',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppTheme.iosGrey,
-                                  height: 1.3,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      const Text(
+                        'Belum ada kendaraan',
+                        style: TextStyle(color: AppTheme.iosGrey),
                       ),
                       const SizedBox(height: 24),
-                      // 3. Maintenance Grid Header
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'KOMPONEN',
-                          style: TextStyle(
-                            color: AppTheme.iosGrey,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ProfileScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text('Tambah Kendaraan'),
                       ),
-                      const SizedBox(height: 12),
                     ],
                   ),
                 ),
               ),
-              // 4. Maintenance Grid
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 1.0, // Square aesthetic
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
+            );
+          }
+
+          final vehicle = provider.selectedVehicle;
+          if (vehicle == null) {
+            return const Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          final items = provider.getItemsForVehicle(vehicle.id!);
+          final criticalItems = items
+              .where(
+                (i) =>
+                    provider.getStatus(i, vehicle.currentOdometer) ==
+                    MaintenanceStatus.wajibGanti,
+              )
+              .toList();
+          final warningItems = items
+              .where(
+                (i) =>
+                    provider.getStatus(i, vehicle.currentOdometer) ==
+                    MaintenanceStatus.mendekati,
+              )
+              .toList();
+
+          final isHealthy = criticalItems.isEmpty && warningItems.isEmpty;
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+
+          return Scaffold(
+            backgroundColor: Colors.transparent,
+            body: CustomScrollView(
+              slivers: [
+                _buildSliverAppBar(context, provider, vehicle),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _buildOdometerAction(context, vehicle, provider),
+                        const SizedBox(height: 16),
+                        _buildStatusHero(
+                          context,
+                          isHealthy,
+                          criticalItems.length,
+                          warningItems.length,
+                        ),
+                        const SizedBox(height: 16),
+                        GlassContainer(
+                          padding: const EdgeInsets.all(12),
+                          color: isDark
+                              ? Colors.white.withOpacity(0.03)
+                              : AppTheme.iosBlue.withOpacity(0.04),
+                          borderColor: isDark
+                              ? Colors.white.withOpacity(0.05)
+                              : AppTheme.iosBlue.withOpacity(0.08),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline_rounded,
+                                color: isDark
+                                    ? AppTheme.iosBlue
+                                    : AppTheme.iosBlue.withOpacity(0.7),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Aplikasi hanya alat bantu. Selalu cek kondisi fisik kendaraan secara langsung sebelum berkendara.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color:
+                                        (isDark ? Colors.white : Colors.black)
+                                            .withOpacity(0.5),
+                                    height: 1.3,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'KOMPONEN',
+                            style: TextStyle(
+                              color: AppTheme.iosGrey,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                    ),
                   ),
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final item = items[index];
-                    return _buildGridItem(context, item, provider, vehicle);
-                  }, childCount: items.length),
                 ),
-              ),
-            ],
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AddMaintenanceScreen(),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 1.0,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                        ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final item = items[index];
+                      return _buildGridItem(context, item, provider, vehicle);
+                    }, childCount: items.length),
+                  ),
                 ),
-              );
-            },
-            backgroundColor: AppTheme.iosBlue,
-            child: const Icon(Icons.add, color: Colors.white),
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -187,7 +187,7 @@ class DashboardScreen extends StatelessWidget {
   ) {
     return SliverAppBar(
       expandedHeight: 80,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Colors.transparent, // Transparent for gradient
       elevation: 0,
       floating: true,
       centerTitle: false,
@@ -214,7 +214,7 @@ class DashboardScreen extends StatelessWidget {
                     vehicle.name,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 20, // Reduced from 24
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -0.5,
                     ),
@@ -280,108 +280,117 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusHero(bool isHealthy, int criticalCount, int warningCount) {
+  Widget _buildStatusHero(
+    BuildContext context,
+    bool isHealthy,
+    int criticalCount,
+    int warningCount,
+  ) {
     Color bgColor = isHealthy
         ? AppTheme.iosGreen
         : (criticalCount > 0 ? AppTheme.iosRed : Colors.orange);
     String title = isHealthy
-        ? 'Semua Sistem Aman'
+        ? 'Semua Komponen Aman'
         : (criticalCount > 0 ? 'Perhatian Diperlukan' : 'Perawatan Mendekati');
     String subtitle = isHealthy
         ? 'Siap berkendara! Kendaraan dalam kondisi prima.'
         : '$criticalCount komponen wajib ganti, $warningCount mendekati jadwal.';
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [bgColor, bgColor.withOpacity(0.8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: bgColor.withOpacity(isDark ? 0.35 : 0.75),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: bgColor.withOpacity(0.4),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: bgColor.withOpacity(isDark ? 0.15 : 0.25),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          // Decorative Background Icon
-          Positioned(
-            right: -20,
-            bottom: -20,
-            child: Icon(
-              isHealthy
-                  ? Icons.check_circle_outline
-                  : Icons.warning_amber_rounded,
-              size: 140,
-              color: Colors.white.withOpacity(0.15),
-            ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            colors: [
+              bgColor.withOpacity(isDark ? 0.4 : 0.8),
+              bgColor.withOpacity(isDark ? 0.2 : 0.5),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          // Main Content
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isHealthy ? Icons.check_circle : Icons.warning_rounded,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Inner "Glass" Card for Text
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(
-                      0.1,
-                    ), // Subtle dark overlay for contrast
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.1),
-                      width: 1,
+          border: Border.all(
+            color: Colors.white.withOpacity(isDark ? 0.15 : 0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -20,
+              bottom: -20,
+              child: Icon(
+                isHealthy
+                    ? Icons.check_circle_outline
+                    : Icons.warning_amber_rounded,
+                size: 140,
+                color: Colors.white.withOpacity(0.15),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isHealthy ? Icons.check_circle : Icons.warning_rounded,
+                      color: Colors.white,
+                      size: 24,
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                  const SizedBox(height: 16),
+                  GlassContainer(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    color: Colors.black.withOpacity(0.1),
+                    borderColor: Colors.white.withOpacity(0.1),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          height: 1.4,
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -393,19 +402,9 @@ class DashboardScreen extends StatelessWidget {
   ) {
     final formatter = NumberFormat('#,###');
 
-    return Container(
+    return GlassContainer(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -436,13 +435,13 @@ class DashboardScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          // Inner Grey Card containing Value AND Action
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
+              color: Theme.of(context).cardColor.withOpacity(0.5),
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -465,7 +464,9 @@ class DashboardScreen extends StatelessWidget {
                       'KM',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurface,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.6),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -474,19 +475,24 @@ class DashboardScreen extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () =>
                       _showUpdateOdoDialog(context, provider, vehicle),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).cardColor,
-                    foregroundColor: AppTheme.iosBlue,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 0,
-                    ),
-                    visualDensity: VisualDensity.compact,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
+                  style:
+                      ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.iosBlue.withOpacity(0.1),
+                        foregroundColor: AppTheme.iosBlue,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 0,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ).copyWith(
+                        overlayColor: MaterialStateProperty.all(
+                          AppTheme.iosBlue.withOpacity(0.1),
+                        ),
+                      ),
                   child: const Text(
                     'Update',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
@@ -517,39 +523,23 @@ class DashboardScreen extends StatelessWidget {
       onTap: () {
         _showItemDetailDialog(context, item, provider, vehicle);
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
+      child: GlassContainer(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Interactive Icon Health Bar
             SizedBox(
-              width: 56,
-              height: 56,
+              width: 50,
+              height: 50,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // 1. Skeleton Layer (Grey Background)
                   Icon(
                     iconData,
-                    color: AppTheme.iosGrey.withOpacity(
-                      0.3,
-                    ), // Darker grey for better visibility
-                    size: 48,
+                    color: dynamicColor.withOpacity(0.15),
+                    size: 40,
                   ),
-                  // 2. Health Layer (Colored Fill using ShaderMask)
                   ShaderMask(
                     shaderCallback: (rect) {
                       return LinearGradient(
@@ -560,28 +550,9 @@ class DashboardScreen extends StatelessWidget {
                       ).createShader(rect);
                     },
                     blendMode: BlendMode.srcIn,
-                    child: Icon(
-                      iconData,
-                      color:
-                          dynamicColor, // Color here is overridden by shader, but good for fallback
-                      size: 48,
-                    ),
+                    child: Icon(iconData, color: dynamicColor, size: 40),
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Suble Health Bar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: SizedBox(
-                height: 4,
-                width: 40,
-                child: LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: dynamicColor.withOpacity(0.1),
-                  valueColor: AlwaysStoppedAnimation<Color>(dynamicColor),
-                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -592,7 +563,20 @@ class DashboardScreen extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: SizedBox(
+                height: 4,
+                width: 60,
+                child: LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: dynamicColor.withOpacity(0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(dynamicColor),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
             Text(
               provider.getMaintenanceStatusText(vehicle.id!, item.name),
               style: TextStyle(
@@ -600,7 +584,7 @@ class DashboardScreen extends StatelessWidget {
                     ? AppTheme.iosGrey
                     : statusColor,
                 fontSize: 11,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
             ),
@@ -615,8 +599,7 @@ class DashboardScreen extends StatelessWidget {
     if (n.contains('oli') || n.contains('oil')) return Icons.oil_barrel_rounded;
     if (n.contains('ban') || n.contains('tire'))
       return Icons.tire_repair_rounded;
-    if (n.contains('rem') || n.contains('brake'))
-      return Icons.album; // Disc brake look-alike
+    if (n.contains('rem') || n.contains('brake')) return Icons.album_rounded;
     if (n.contains('aki') || n.contains('battery'))
       return Icons.battery_charging_full_rounded;
     if (n.contains('filter') || n.contains('air')) return Icons.air_rounded;
@@ -627,7 +610,7 @@ class DashboardScreen extends StatelessWidget {
         n.contains('cvt') ||
         n.contains('gir') ||
         n.contains('gear'))
-      return Icons.settings_rounded; // Gear icon
+      return Icons.settings_rounded;
     if (n.contains('radiator') || n.contains('coolant'))
       return Icons.ac_unit_rounded;
     return Icons.build_circle_rounded;
@@ -645,115 +628,226 @@ class DashboardScreen extends StatelessWidget {
       vehicle.id!,
       item.name,
     );
+    final progress = provider.getItemHealth(item, vehicle.currentOdometer);
+    final diffDays = DateTime.now().difference(item.lastServiceDate).inDays;
+
+    String healthDesc = 'Sangat Baik';
+    if (progress < 0.2)
+      healthDesc = 'Kritis (Segera Ganti)';
+    else if (progress < 0.5)
+      healthDesc = 'Perhatian';
+    else if (progress < 0.8)
+      healthDesc = 'Baik';
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(_getAestheticIcon(item.name), color: statusColor),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                item.name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDialogRow('Status', status.name.toUpperCase(), statusColor),
-            const SizedBox(height: 8),
-            _buildDialogRow(
-              'Interval',
-              '${item.intervalDistance.toInt()} KM',
-              AppTheme.iosGrey,
-            ),
-            const SizedBox(height: 8),
-            _buildDialogRow(
-              'Sisa Jarak',
-              remainingText,
-              Theme.of(context).colorScheme.onSurface,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Detail Terakhir:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Servis terakhir pada ${DateFormat('dd MMM yyyy').format(item.lastServiceDate)} di ${item.lastServiceOdometer.toInt()} KM.',
-              style: const TextStyle(fontSize: 13, color: AppTheme.iosGrey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Tutup',
-              style: TextStyle(color: AppTheme.iosGrey),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog first
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditMaintenanceScreen(
-                    item: item,
-                    vehicleId: vehicle.id!,
-                    currentOdometer: vehicle.currentOdometer,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GlassContainer(
+          borderRadius: 24,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: statusColor.withOpacity(0.2)),
+                    ),
+                    child: Icon(
+                      _getAestheticIcon(item.name),
+                      color: statusColor,
+                      size: 28,
+                    ),
                   ),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.iosBlue,
-              foregroundColor: Colors.white, // Explicitly set white text
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.name,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close, color: Theme.of(context).hintColor),
+                  ),
+                ],
               ),
-            ),
-            child: const Text('Update'),
+              const SizedBox(height: 24),
+              Text(
+                'KONDISI SAAT INI',
+                style: TextStyle(
+                  color: Theme.of(context).hintColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          healthDesc,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${(progress * 100).toInt()}% Health Score',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    remainingText,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 8,
+                  backgroundColor: statusColor.withOpacity(0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Divider(
+                height: 1,
+                color: Theme.of(context).dividerColor.withOpacity(0.1),
+              ),
+              const SizedBox(height: 24),
+              _buildInfoRow(
+                context,
+                'Interval Servis',
+                '${NumberFormat('#,###').format(item.intervalDistance)} KM',
+              ),
+              _buildInfoRow(
+                context,
+                'Terakhir Servis',
+                '${DateFormat('dd MMM yyyy').format(item.lastServiceDate)}',
+              ),
+              _buildInfoRow(
+                context,
+                'KM Terakhir',
+                '${NumberFormat('#,###').format(item.lastServiceOdometer)} KM',
+              ),
+              _buildInfoRow(context, 'Usia Pemakaian', '$diffDays Hari'),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.all(16),
+                        foregroundColor: Theme.of(context).hintColor,
+                      ),
+                      child: const Text('Tutup'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditMaintenanceScreen(
+                              item: item,
+                              vehicleId: vehicle.id!,
+                              currentOdometer: vehicle.currentOdometer,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.iosBlue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.all(16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Service',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildDialogRow(String label, String value, Color valueColor) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: AppTheme.iosGrey, fontSize: 14),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            color: valueColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
+  Widget _buildInfoRow(
+    BuildContext context,
+    String label,
+    String value, {
+    bool isHighlight = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(color: Theme.of(context).hintColor, fontSize: 13),
           ),
-        ),
-      ],
+          Text(
+            value,
+            style: TextStyle(
+              color: isHighlight
+                  ? AppTheme.iosBlue
+                  : Theme.of(context).colorScheme.onSurface,
+              fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

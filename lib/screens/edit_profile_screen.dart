@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/vehicle_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/glass_container.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -84,140 +85,154 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('Edit Profil'), centerTitle: true),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          // Profile Photo Section
-          Center(
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Stack(
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: _selectedPhotoPath != null
-                            ? ClipOval(
-                                child: Image.file(
-                                  File(_selectedPhotoPath!),
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : const Icon(
-                                Icons.person_rounded,
-                                size: 64,
-                                color: AppTheme.iosGrey,
-                              ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: AppTheme.iosBlue,
+    return Container(
+      decoration: AppTheme.getScaffoldDecoration(context),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Edit Profil'),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            // Profile Photo Section
+            Center(
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
                             shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.2),
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
                           ),
-                          child: const Icon(
-                            Icons.camera_alt_rounded,
-                            color: Colors.white,
-                            size: 20,
+                          child: _selectedPhotoPath != null
+                              ? ClipOval(
+                                  child: Image.file(
+                                    File(_selectedPhotoPath!),
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : CircleAvatar(
+                                  backgroundColor: AppTheme.iosGrey.withOpacity(
+                                    0.2,
+                                  ),
+                                  child: const Icon(
+                                    Icons.person_rounded,
+                                    size: 64,
+                                    color: AppTheme.iosGrey,
+                                  ),
+                                ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: AppTheme.iosBlue,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextButton.icon(
-                  onPressed: _pickImage,
-                  icon: const Icon(Icons.photo_library_rounded),
-                  label: const Text('Pilih Foto'),
-                ),
-                if (_selectedPhotoPath != null)
+                  const SizedBox(height: 12),
                   TextButton.icon(
-                    onPressed: _removePhoto,
-                    icon: const Icon(Icons.delete_outline_rounded),
-                    label: const Text('Hapus Foto'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppTheme.iosRed,
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.photo_library_rounded),
+                    label: const Text('Pilih Foto'),
+                  ),
+                  if (_selectedPhotoPath != null)
+                    TextButton.icon(
+                      onPressed: _removePhoto,
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      label: const Text('Hapus Foto'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.iosRed,
+                      ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // Username Field
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'NAMA PROFIL',
-                  style: TextStyle(
-                    color: AppTheme.iosGrey,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                    hintText: 'Masukkan nama Anda',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
-                  textCapitalization: TextCapitalization.words,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // Save Button
-          ElevatedButton(
-            onPressed: _saveProfile,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.iosBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                ],
               ),
             ),
-            child: const Text(
-              'Simpan Perubahan',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            const SizedBox(height: 32),
+
+            // Username Field
+            GlassContainer(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'NAMA PROFIL',
+                    style: TextStyle(
+                      color: AppTheme.iosGrey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _usernameController,
+                    decoration: const InputDecoration(
+                      hintText: 'Masukkan nama Anda',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 32),
+
+            // Save Button
+            ElevatedButton(
+              onPressed: _saveProfile,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.iosBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 5,
+                shadowColor: AppTheme.iosBlue.withOpacity(0.4),
+              ),
+              child: const Text(
+                'Simpan Perubahan',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

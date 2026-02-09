@@ -5,6 +5,7 @@ import '../providers/vehicle_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/vehicle.dart';
 import '../theme/app_theme.dart';
+import '../widgets/glass_container.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -12,160 +13,185 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('Profil'), centerTitle: true),
-      body: Consumer<VehicleProvider>(
-        builder: (context, provider, child) {
-          return ListView(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            children: [
-              // User Header
-              Center(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: provider.profilePhotoPath != null
-                          ? ClipOval(
-                              child: Image.file(
-                                File(provider.profilePhotoPath!),
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.person_rounded,
-                              size: 64,
-                              color: AppTheme.iosGrey,
-                            ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      provider.username.isEmpty
-                          ? 'Driver DriveSafe'
-                          : provider.username,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              _buildSection('PROFIL PENGGUNA'),
-              _buildSettingsTile(
-                context,
-                icon: Icons.edit_rounded,
-                title: 'Edit Profil',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const EditProfileScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-
-              _buildSection('KENDARAAN SAYA'),
-              if (provider.vehicles.isNotEmpty) ...[
-                ...provider.vehicles.map(
-                  (vehicle) => Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    color: Theme.of(context).cardColor,
-                    child: ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
+    return Container(
+      decoration: AppTheme.getScaffoldDecoration(context),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Profil'),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        body: Consumer<VehicleProvider>(
+          builder: (context, provider, child) {
+            return ListView(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              children: [
+                // User Header
+                Center(
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 120,
+                        height: 120,
                         decoration: BoxDecoration(
-                          color: AppTheme.iosBlue.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 16,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
-                        child: Icon(
-                          vehicle.type == VehicleType.motor
-                              ? Icons.motorcycle_rounded
-                              : Icons.directions_car_rounded,
-                          color: AppTheme.iosBlue,
+                        child: provider.profilePhotoPath != null
+                            ? ClipOval(
+                                child: Image.file(
+                                  File(provider.profilePhotoPath!),
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : CircleAvatar(
+                                backgroundColor: AppTheme.iosGrey.withOpacity(
+                                  0.2,
+                                ),
+                                child: const Icon(
+                                  Icons.person_rounded,
+                                  size: 64,
+                                  color: AppTheme.iosGrey,
+                                ),
+                              ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        provider.username.isEmpty
+                            ? 'Driver DriveSafe'
+                            : provider.username,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
-                      title: Text(
-                        vehicle.name,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(
-                        '${vehicle.year} | ${vehicle.type.name.toUpperCase()}',
-                      ),
-                      trailing: const Icon(
-                        Icons.chevron_right,
-                        color: AppTheme.iosGrey,
-                      ),
-                      onTap: () {
-                        // Optional: Navigate to vehicle detail or edit
-                      },
-                    ),
+                    ],
                   ),
                 ),
-              ] else ...[
-                _buildEmptyPlaceholder(context),
-              ],
-              _buildAddVehicleTile(context),
+                const SizedBox(height: 32),
 
-              const SizedBox(height: 32),
-              _buildSection('PENGATURAN'),
-              Consumer<ThemeProvider>(
-                builder: (context, themeProvider, child) {
-                  return _buildSettingsTile(
-                    context,
-                    icon: Icons.dark_mode_rounded,
-                    title: 'Mode Gelap',
-                    trailing: Switch.adaptive(
-                      value: themeProvider.isDarkMode,
-                      onChanged: (val) => themeProvider.toggleTheme(val),
+                _buildSection('PROFIL PENGGUNA'),
+                _buildSettingsTile(
+                  context,
+                  icon: Icons.edit_rounded,
+                  title: 'Edit Profil',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EditProfileScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                _buildSection('KENDARAAN SAYA'),
+                if (provider.vehicles.isNotEmpty) ...[
+                  ...provider.vehicles.map(
+                    (vehicle) => GlassContainer(
+                      margin: const EdgeInsets.only(
+                        bottom: 8,
+                        left: 16,
+                        right: 16,
+                      ),
+                      padding: EdgeInsets.zero,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.iosBlue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            vehicle.type == VehicleType.motor
+                                ? Icons.motorcycle_rounded
+                                : Icons.directions_car_rounded,
+                            color: AppTheme.iosBlue,
+                          ),
+                        ),
+                        title: Text(
+                          vehicle.name,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          '${vehicle.year} | ${vehicle.type.name.toUpperCase()}',
+                        ),
+                        trailing: const Icon(
+                          Icons.chevron_right,
+                          color: AppTheme.iosGrey,
+                        ),
+                        onTap: () {
+                          // Optional: Navigate to vehicle detail or edit
+                        },
+                      ),
                     ),
-                  );
-                },
-              ),
-              _buildSettingsTile(
-                context,
-                icon: Icons.notifications_rounded,
-                title: 'Notifikasi Update Odometer',
-                trailing: Switch.adaptive(
-                  value: provider.isReminderEnabled,
-                  onChanged: (val) => provider.setReminderEnabled(val),
-                ),
-              ),
-              _buildSettingsTile(
-                context,
-                icon: Icons.delete_forever_rounded,
-                title: 'Reset Semua Data',
-                textColor: AppTheme.iosRed,
-                onTap: () => _confirmReset(context, provider),
-              ),
+                  ),
+                ] else ...[
+                  _buildEmptyPlaceholder(context),
+                ],
+                _buildAddVehicleTile(context),
 
-              const SizedBox(height: 48),
-              const Center(
-                child: Text(
-                  'Versi 1.0.0',
-                  style: TextStyle(color: AppTheme.iosGrey, fontSize: 13),
+                const SizedBox(height: 32),
+                _buildSection('PENGATURAN'),
+                Consumer<ThemeProvider>(
+                  builder: (context, themeProvider, child) {
+                    return _buildSettingsTile(
+                      context,
+                      icon: Icons.dark_mode_rounded,
+                      title: 'Mode Gelap',
+                      trailing: Switch.adaptive(
+                        value: themeProvider.isDarkMode,
+                        onChanged: (val) => themeProvider.toggleTheme(val),
+                      ),
+                    );
+                  },
                 ),
-              ),
-            ],
-          );
-        },
+                _buildSettingsTile(
+                  context,
+                  icon: Icons.notifications_rounded,
+                  title: 'Notifikasi Update Odometer',
+                  trailing: Switch.adaptive(
+                    value: provider.isReminderEnabled,
+                    onChanged: (val) => provider.setReminderEnabled(val),
+                  ),
+                ),
+                _buildSettingsTile(
+                  context,
+                  icon: Icons.delete_forever_rounded,
+                  title: 'Reset Semua Data',
+                  textColor: AppTheme.iosRed,
+                  onTap: () => _confirmReset(context, provider),
+                ),
+
+                const SizedBox(height: 48),
+                const Center(
+                  child: Text(
+                    'Versi 1.0.0',
+                    style: TextStyle(color: AppTheme.iosGrey, fontSize: 13),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -178,17 +204,17 @@ class ProfileScreen extends StatelessWidget {
         style: const TextStyle(
           color: AppTheme.iosGrey,
           fontSize: 13,
-          fontWeight: FontWeight.normal,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
         ),
       ),
     );
   }
 
   Widget _buildEmptyPlaceholder(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+    return GlassContainer(
+      margin: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
       padding: const EdgeInsets.all(16),
-      color: Theme.of(context).cardColor,
       child: const Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -209,62 +235,52 @@ class ProfileScreen extends StatelessWidget {
     Color? textColor,
     VoidCallback? onTap,
   }) {
-    return Container(
-      color: Theme.of(context).cardColor,
-      child: Column(
-        children: [
-          ListTile(
-            onTap: onTap,
-            leading: Icon(icon, color: textColor ?? AppTheme.iosBlue, size: 22),
-            title: Text(
-              title,
-              style: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.w500,
-                fontSize: 16,
-              ),
-            ),
-            trailing:
-                trailing ??
-                const Icon(
-                  Icons.chevron_right,
-                  color: AppTheme.iosGrey,
-                  size: 20,
-                ),
+    return GlassContainer(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.zero,
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Icon(icon, color: textColor ?? AppTheme.iosBlue, size: 22),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
           ),
-          const Divider(height: 1, indent: 56),
-        ],
+        ),
+        trailing:
+            trailing ??
+            const Icon(Icons.chevron_right, color: AppTheme.iosGrey, size: 20),
       ),
     );
   }
 
   Widget _buildAddVehicleTile(BuildContext context) {
-    return Container(
-      color: Theme.of(context).cardColor,
-      child: Column(
-        children: [
-          const Divider(height: 1, indent: 16),
-          ListTile(
-            onTap: () => _showAddVehicleSheet(context),
-            leading: const Icon(
-              Icons.add_circle_outline_rounded,
-              color: AppTheme.iosBlue,
-            ),
-            title: const Text(
-              'Tambah Kendaraan',
-              style: TextStyle(
-                color: AppTheme.iosBlue,
-                fontWeight: FontWeight.w500,
-                fontSize: 16,
-              ),
-            ),
-            trailing: const Icon(
-              Icons.chevron_right,
-              color: AppTheme.iosGrey,
-              size: 20,
-            ),
+    return GlassContainer(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.zero,
+      child: ListTile(
+        onTap: () => _showAddVehicleSheet(context),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: const Icon(
+          Icons.add_circle_outline_rounded,
+          color: AppTheme.iosBlue,
+        ),
+        title: const Text(
+          'Tambah Kendaraan',
+          style: TextStyle(
+            color: AppTheme.iosBlue,
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
           ),
-        ],
+        ),
+        trailing: const Icon(
+          Icons.chevron_right,
+          color: AppTheme.iosGrey,
+          size: 20,
+        ),
       ),
     );
   }
@@ -281,9 +297,12 @@ class ProfileScreen extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
-          decoration: const BoxDecoration(
-            color: AppTheme.iosLightGrey,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor, // Use theme bg
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20),
+            ],
           ),
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom + 32,
@@ -342,6 +361,7 @@ class ProfileScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
+              // Use standard container or glass for inputs? Standard is safer for inputs
               _buildInputGroup(context, [
                 _buildSheetTextField(
                   context,

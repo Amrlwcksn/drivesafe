@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/vehicle_provider.dart';
 import '../models/maintenance_item.dart';
 import '../theme/app_theme.dart';
+import '../widgets/glass_container.dart';
 
 class AddMaintenanceScreen extends StatefulWidget {
   const AddMaintenanceScreen({super.key});
@@ -29,69 +30,72 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Tambah Item Maintenance'),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: AppTheme.iosBlue),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => _save(context),
-            child: const Text(
-              'Simpan',
-              style: TextStyle(
-                color: AppTheme.iosBlue,
-                fontWeight: FontWeight.bold,
+    return Container(
+      decoration: AppTheme.getScaffoldDecoration(context),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Tambah Item Maintenance'),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: AppTheme.iosBlue),
+            onPressed: () => Navigator.pop(context),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => _save(context),
+              child: const Text(
+                'Simpan',
+                style: TextStyle(
+                  color: AppTheme.iosBlue,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildTextField(
-            'NAMA KOMPONEN',
-            _nameController,
-            hint: 'Contoh: Busi, Kampas Rem',
-            onChanged: (val) {
-              setState(() {
-                _isOil =
-                    val.toLowerCase().contains('oli') ||
-                    val.toLowerCase().contains('oil');
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-          _buildTextField(
-            'INTERVAL SERVIS (KM)',
-            _intervalController,
-            isNumber: true,
-            hint: 'Contoh: 5000',
-          ),
-
-          if (_isOil) ...[
-            const SizedBox(height: 16),
-            _buildTextField(
-              'MERK OLI',
-              _brandController,
-              hint: 'Contoh: Shell, Pertamina',
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              'VOLUME (ML)',
-              _volumeController,
-              isNumber: true,
-              hint: 'Contoh: 800',
-            ),
           ],
-        ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildTextField(
+              'NAMA KOMPONEN',
+              _nameController,
+              hint: 'Contoh: Busi, Kampas Rem',
+              onChanged: (val) {
+                setState(() {
+                  _isOil =
+                      val.toLowerCase().contains('oli') ||
+                      val.toLowerCase().contains('oil');
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            _buildTextField(
+              'INTERVAL SERVIS (KM)',
+              _intervalController,
+              isNumber: true,
+              hint: 'Contoh: 5000',
+            ),
+
+            if (_isOil) ...[
+              const SizedBox(height: 16),
+              _buildTextField(
+                'MERK OLI',
+                _brandController,
+                hint: 'Contoh: Shell, Pertamina',
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                'VOLUME (ML)',
+                _volumeController,
+                isNumber: true,
+                hint: 'Contoh: 800',
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -115,12 +119,8 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
+        GlassContainer(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: TextField(
             controller: controller,
             keyboardType: isNumber ? TextInputType.number : TextInputType.text,
@@ -130,7 +130,7 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
               hintStyle: TextStyle(color: Colors.grey.withOpacity(0.5)),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
+                horizontal: 0,
                 vertical: 12,
               ),
             ),

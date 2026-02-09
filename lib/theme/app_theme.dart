@@ -17,20 +17,20 @@ class AppTheme {
       seedColor: iosBlue,
       primary: iosBlue,
       secondary: iosBlue,
-      surface: Colors.white,
-      background: iosLightGrey,
+      surface: Colors.grey[100]!, // Light grey for glass contrast
+      background: Colors.white,
       error: iosRed,
     ),
-    scaffoldBackgroundColor: iosLightGrey,
+    scaffoldBackgroundColor: Colors.transparent, // Transparent for gradient
     cardTheme: CardThemeData(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.white.withOpacity(0.6), // Semi-transparent
     ),
     appBarTheme: const AppBarTheme(
       centerTitle: true,
       elevation: 0,
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       foregroundColor: Colors.black,
       titleTextStyle: TextStyle(
         color: Colors.black,
@@ -40,8 +40,8 @@ class AppTheme {
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      elevation: 1,
-      backgroundColor: Colors.white,
+      elevation: 0,
+      backgroundColor: Colors.white.withOpacity(0.8), // Glassy nav
       indicatorColor: iosBlue.withOpacity(0.1),
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
     ),
@@ -63,16 +63,16 @@ class AppTheme {
       surface: const Color(0xFF1C1C1E),
       background: Colors.black,
     ),
-    scaffoldBackgroundColor: Colors.black,
+    scaffoldBackgroundColor: Colors.transparent, // Transparent for gradient
     cardTheme: CardThemeData(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: const Color(0xFF1C1C1E),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: const Color(0xFF1C1C1E).withOpacity(0.6),
     ),
     appBarTheme: const AppBarTheme(
       centerTitle: true,
       elevation: 0,
-      backgroundColor: Color(0xFF1C1C1E),
+      backgroundColor: Colors.transparent,
       foregroundColor: Colors.white,
       titleTextStyle: TextStyle(
         color: Colors.white,
@@ -87,8 +87,8 @@ class AppTheme {
       indicatorSize: TabBarIndicatorSize.label,
     ),
     navigationBarTheme: NavigationBarThemeData(
-      elevation: 1,
-      backgroundColor: Colors.black,
+      elevation: 0,
+      backgroundColor: Colors.black.withOpacity(0.8),
       indicatorColor: iosBlue.withOpacity(0.12),
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
     ),
@@ -103,5 +103,34 @@ class AppTheme {
       case MaintenanceStatus.wajibGanti:
         return iosRed;
     }
+  }
+
+  // Gradients
+  static const LinearGradient lightBackgroundGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFFF2F2F7), // Light Grey
+      Color(0xFFE5E5EA), // Slightly Darker
+      Color(0xFFD1D1D6), // Accent
+    ],
+  );
+
+  static const LinearGradient darkBackgroundGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF000000), // Black
+      Color(0xFF1C1C1E), // Dark Grey
+      Color(0xFF2C2C2E), // Lighter Grey
+    ],
+  );
+
+  static BoxDecoration getScaffoldDecoration(BuildContext context) {
+    return BoxDecoration(
+      gradient: Theme.of(context).brightness == Brightness.dark
+          ? darkBackgroundGradient
+          : lightBackgroundGradient,
+    );
   }
 }

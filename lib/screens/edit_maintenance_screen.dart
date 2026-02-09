@@ -5,6 +5,7 @@ import '../models/maintenance_item.dart';
 import '../models/maintenance_log.dart';
 import '../theme/app_theme.dart';
 import 'package:intl/intl.dart';
+import '../widgets/glass_container.dart';
 
 class EditMaintenanceScreen extends StatefulWidget {
   final MaintenanceItem item;
@@ -93,168 +94,183 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
     final isOil = widget.item.name.toLowerCase().contains('oli');
     final isDayInterval = widget.item.intervalDay > 0;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Edit Maintenance'),
-        centerTitle: true,
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _lastOdoController.text = widget.currentOdometer
-                    .toInt()
-                    .toString();
-                _selectedDate = DateTime.now();
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Data servis di-reset ke saat ini'),
-                  duration: Duration(seconds: 1),
-                ),
-              );
-            },
-            child: const Text(
-              'Reset',
-              style: TextStyle(
-                color: AppTheme.iosBlue,
-                fontWeight: FontWeight.normal,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              final provider = Provider.of<VehicleProvider>(
-                context,
-                listen: false,
-              );
-
-              // 1. Update the Item (Definition & Status)
-              provider.updateMaintenanceItem(
-                widget.item.id!,
-                name: _nameController.text,
-                intervalDistance:
-                    double.tryParse(_intervalController.text) ??
-                    widget.item.intervalDistance,
-                intervalDay:
-                    int.tryParse(_intervalDayController.text) ??
-                    widget.item.intervalDay,
-                lastServiceOdometer:
-                    double.tryParse(_lastOdoController.text) ??
-                    widget.item.lastServiceOdometer,
-                lastServiceDate: _selectedDate,
-                oilBrand: _brandController.text,
-                oilVolume: _volumeController.text,
-              );
-
-              // 2. Check if this counts as a "New Service" (Log it)
-              // If the Last Service Odometer or Date has changed, we assume it's a service entry.
-              final newLastOdo =
-                  double.tryParse(_lastOdoController.text) ??
-                  widget.item.lastServiceOdometer;
-
-              if (newLastOdo != widget.item.lastServiceOdometer ||
-                  _selectedDate != widget.item.lastServiceDate) {
-                final log = MaintenanceLog(
-                  maintenanceItemId: widget.item.id!,
-                  date: _selectedDate,
-                  odometer: newLastOdo,
-                  notes: 'Pembaruan manual',
-                  oilBrand: isOil ? _brandController.text : null,
-                  oilVolume: isOil ? _volumeController.text : null,
+    return Container(
+      decoration: AppTheme.getScaffoldDecoration(context),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Edit Maintenance'),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _lastOdoController.text = widget.currentOdometer
+                      .toInt()
+                      .toString();
+                  _selectedDate = DateTime.now();
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Data servis di-reset ke saat ini'),
+                    duration: Duration(seconds: 1),
+                  ),
                 );
-
-                provider.logMaintenance(log);
-              }
-
-              Navigator.pop(context);
-            },
-            child: const Text(
-              'Simpan',
-              style: TextStyle(
-                color: AppTheme.iosBlue,
-                fontWeight: FontWeight.bold,
+              },
+              child: const Text(
+                'Reset',
+                style: TextStyle(
+                  color: AppTheme.iosBlue,
+                  fontWeight: FontWeight.normal,
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      body: ListView(
-        children: [
-          const SizedBox(height: 32),
-          _buildSection('INFORMASI UMUM'),
-          _buildTextField('NAMA KOMPONEN', _nameController),
-          // Conditionally show Interval field based on type
-          if (isDayInterval)
-            _buildTextField(
-              'INTERVAL (HARI)',
-              _intervalDayController,
-              isNumber: true,
-            )
-          else
-            _buildTextField(
-              'INTERVAL (KM)',
-              _intervalController,
-              isNumber: true,
-            ),
-
-          const SizedBox(height: 32),
-          _buildSection('TERAKHIR SERVIS'),
-          _buildTextField('KM SAAT SERVIS', _lastOdoController, isNumber: true),
-          ListTile(
-            tileColor: Theme.of(context).cardColor,
-            title: const Text(
-              'TANGGAL SERVIS',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  DateFormat('dd MMM yyyy').format(_selectedDate),
-                  style: const TextStyle(color: AppTheme.iosGrey),
-                ),
-                const Icon(Icons.chevron_right, color: AppTheme.iosGrey),
-              ],
-            ),
-            onTap: () => _selectDate(context),
-          ),
-
-          if (isOil) ...[
-            const SizedBox(height: 32),
-            _buildSection('DETAIL OLI'),
-            _buildTextField('MERK OLI', _brandController),
-            _buildTextField('VOLUME (ML)', _volumeController, isNumber: true),
-          ],
-
-          const SizedBox(height: 48),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ElevatedButton(
+            TextButton(
               onPressed: () {
                 final provider = Provider.of<VehicleProvider>(
                   context,
                   listen: false,
                 );
-                provider.deleteMaintenanceItem(widget.item.id!);
+
+                // 1. Update the Item (Definition & Status)
+                provider.updateMaintenanceItem(
+                  widget.item.id!,
+                  name: _nameController.text,
+                  intervalDistance:
+                      double.tryParse(_intervalController.text) ??
+                      widget.item.intervalDistance,
+                  intervalDay:
+                      int.tryParse(_intervalDayController.text) ??
+                      widget.item.intervalDay,
+                  lastServiceOdometer:
+                      double.tryParse(_lastOdoController.text) ??
+                      widget.item.lastServiceOdometer,
+                  lastServiceDate: _selectedDate,
+                  oilBrand: _brandController.text,
+                  oilVolume: _volumeController.text,
+                );
+
+                // 2. Check if this counts as a "New Service" (Log it)
+                // If the Last Service Odometer or Date has changed, we assume it's a service entry.
+                final newLastOdo =
+                    double.tryParse(_lastOdoController.text) ??
+                    widget.item.lastServiceOdometer;
+
+                if (newLastOdo != widget.item.lastServiceOdometer ||
+                    _selectedDate != widget.item.lastServiceDate) {
+                  final log = MaintenanceLog(
+                    maintenanceItemId: widget.item.id!,
+                    date: _selectedDate,
+                    odometer: newLastOdo,
+                    notes: 'Pembaruan manual',
+                    oilBrand: isOil ? _brandController.text : null,
+                    oilVolume: isOil ? _volumeController.text : null,
+                  );
+
+                  provider.logMaintenance(log);
+                }
+
                 Navigator.pop(context);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).cardColor,
-                foregroundColor: AppTheme.iosRed,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                side: BorderSide(color: Theme.of(context).dividerColor),
-              ),
               child: const Text(
-                'Hapus Komponen',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                'Simpan',
+                style: TextStyle(
+                  color: AppTheme.iosBlue,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const SizedBox(height: 16),
+            _buildSection('INFORMASI UMUM'),
+            _buildTextField('NAMA KOMPONEN', _nameController),
+            // Conditionally show Interval field based on type
+            if (isDayInterval)
+              _buildTextField(
+                'INTERVAL (HARI)',
+                _intervalDayController,
+                isNumber: true,
+              )
+            else
+              _buildTextField(
+                'INTERVAL (KM)',
+                _intervalController,
+                isNumber: true,
+              ),
+
+            const SizedBox(height: 32),
+            _buildSection('TERAKHIR SERVIS'),
+            _buildTextField(
+              'KM SAAT SERVIS',
+              _lastOdoController,
+              isNumber: true,
+            ),
+            GlassContainer(
+              padding: EdgeInsets.zero,
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              child: ListTile(
+                tileColor: Colors.transparent,
+                title: const Text(
+                  'TANGGAL SERVIS',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      DateFormat('dd MMM yyyy').format(_selectedDate),
+                      style: const TextStyle(color: AppTheme.iosGrey),
+                    ),
+                    const Icon(Icons.chevron_right, color: AppTheme.iosGrey),
+                  ],
+                ),
+                onTap: () => _selectDate(context),
+              ),
+            ),
+
+            if (isOil) ...[
+              const SizedBox(height: 32),
+              _buildSection('DETAIL OLI'),
+              _buildTextField('MERK OLI', _brandController),
+              _buildTextField('VOLUME (ML)', _volumeController, isNumber: true),
+            ],
+
+            const SizedBox(height: 48),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0),
+              child: GlassContainer(
+                padding: EdgeInsets.zero,
+                child: TextButton(
+                  onPressed: () {
+                    final provider = Provider.of<VehicleProvider>(
+                      context,
+                      listen: false,
+                    );
+                    provider.deleteMaintenanceItem(widget.item.id!);
+                    Navigator.pop(context);
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.iosRed,
+                    padding: const EdgeInsets.all(16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Hapus Komponen',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -267,7 +283,8 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
         style: const TextStyle(
           color: AppTheme.iosGrey,
           fontSize: 13,
-          fontWeight: FontWeight.w400,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -278,8 +295,8 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
     TextEditingController controller, {
     bool isNumber = false,
   }) {
-    return Container(
-      color: Theme.of(context).cardColor,
+    return GlassContainer(
+      margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

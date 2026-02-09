@@ -5,6 +5,8 @@ import 'dashboard_screen.dart';
 import 'maintenance_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
+import '../theme/app_theme.dart';
+import '../widgets/glass_container.dart';
 
 import '../services/notification_service.dart';
 
@@ -69,6 +71,8 @@ class _MainScreenState extends State<MainScreen> {
                 _currentIndex = index;
               });
             },
+            backgroundColor: Colors.transparent,
+            indicatorColor: AppTheme.iosBlue.withOpacity(0.2),
             destinations: const [
               NavigationDestination(
                 icon: Icon(Icons.home_outlined),
@@ -92,66 +96,95 @@ class _MainScreenState extends State<MainScreen> {
               ),
             ],
           ),
-        );
+        ).applyGlassBackground(context);
       },
     );
   }
 
   Widget _buildSetupScreen(BuildContext context, VehicleProvider provider) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.account_circle,
-                size: 80,
-                color: Colors.blueAccent,
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Selamat Datang!',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Silakan masukkan nama Anda untuk memulai menggunakan Drivesafe.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 32),
-              TextField(
-                controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'Username',
-                  hintText: 'Nama Panggilan',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
+          child: GlassContainer(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.account_circle,
+                  size: 80,
+                  color: AppTheme.iosBlue,
                 ),
-                textCapitalization: TextCapitalization.words,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    if (_usernameController.text.trim().isNotEmpty) {
-                      provider.setUsername(_usernameController.text.trim());
-                    }
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text('Mulai Berkendara'),
+                const SizedBox(height: 24),
+                const Text(
+                  'Selamat Datang!',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Silakan masukkan nama Anda untuk memulai menggunakan Drivesafe.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppTheme.iosGrey),
+                ),
+                const SizedBox(height: 32),
+                GlassContainer(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextField(
+                    controller: _usernameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Username',
+                      hintText: 'Nama Panggilan',
+                      border: InputBorder.none,
+                      prefixIcon: Icon(Icons.person, color: AppTheme.iosBlue),
+                    ),
+                    textCapitalization: TextCapitalization.words,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (_usernameController.text.trim().isNotEmpty) {
+                        provider.setUsername(_usernameController.text.trim());
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.iosBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.all(16.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 5,
+                      shadowColor: AppTheme.iosBlue.withOpacity(0.4),
+                    ),
+                    child: const Text(
+                      'Mulai Berkendara',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
+    ).applyGlassBackground(context);
+  }
+}
+
+extension GlassScaffold on Scaffold {
+  Widget applyGlassBackground(BuildContext context) {
+    return Container(
+      decoration: AppTheme.getScaffoldDecoration(context),
+      child: this,
     );
   }
 }

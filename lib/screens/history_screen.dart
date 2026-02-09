@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/vehicle_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/glass_container.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -11,37 +12,40 @@ class HistoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          title: const Text(
-            'Riwayat',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          centerTitle: true,
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          elevation: 0,
-          bottom: const TabBar(
-            labelColor: AppTheme.iosBlue,
-            unselectedLabelColor: AppTheme.iosGrey,
-            indicatorColor: AppTheme.iosBlue,
-            tabs: [
-              Tab(text: 'Perawatan'),
-              Tab(text: 'Jarak Tempuh'),
-            ],
-          ),
-        ),
-        body: Consumer<VehicleProvider>(
-          builder: (context, provider, child) {
-            return TabBarView(
-              children: [
-                _buildMaintenanceLogs(provider.selectedVehicleLogs, provider),
-                _buildDistanceLogs(
-                  provider.distanceLogs,
-                ), // New getter already returns filtered
+      child: Container(
+        decoration: AppTheme.getScaffoldDecoration(context),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text(
+              'Riwayat',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            centerTitle: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            bottom: const TabBar(
+              labelColor: AppTheme.iosBlue,
+              unselectedLabelColor: AppTheme.iosGrey,
+              indicatorColor: AppTheme.iosBlue,
+              tabs: [
+                Tab(text: 'Perawatan'),
+                Tab(text: 'Jarak Tempuh'),
               ],
-            );
-          },
+            ),
+          ),
+          body: Consumer<VehicleProvider>(
+            builder: (context, provider, child) {
+              return TabBarView(
+                children: [
+                  _buildMaintenanceLogs(provider.selectedVehicleLogs, provider),
+                  _buildDistanceLogs(
+                    provider.distanceLogs,
+                  ), // New getter already returns filtered
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -61,13 +65,9 @@ class HistoryScreen extends StatelessWidget {
       itemCount: logs.length,
       itemBuilder: (context, index) {
         final log = logs[index];
-        return Container(
+        return GlassContainer(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -153,13 +153,9 @@ class HistoryScreen extends StatelessWidget {
         final added = (log['addedDistance'] as num).toDouble();
         final newOdo = (log['newOdometer'] as num).toDouble();
 
-        return Container(
+        return GlassContainer(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
           child: Row(
             children: [
               Container(
