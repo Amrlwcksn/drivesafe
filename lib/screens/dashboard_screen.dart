@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -18,7 +19,7 @@ class DashboardScreen extends StatelessWidget {
       builder: (context, provider, child) {
         if (provider.vehicles.isEmpty) {
           return Scaffold(
-            backgroundColor: AppTheme.iosLightGrey,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -75,7 +76,7 @@ class DashboardScreen extends StatelessWidget {
         final isHealthy = criticalItems.isEmpty && warningItems.isEmpty;
 
         return Scaffold(
-          backgroundColor: AppTheme.iosLightGrey,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: CustomScrollView(
             slivers: [
               _buildSliverAppBar(context, provider, vehicle),
@@ -186,7 +187,7 @@ class DashboardScreen extends StatelessWidget {
   ) {
     return SliverAppBar(
       expandedHeight: 80,
-      backgroundColor: AppTheme.iosLightGrey,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       elevation: 0,
       floating: true,
       centerTitle: false,
@@ -211,8 +212,8 @@ class DashboardScreen extends StatelessWidget {
                 children: [
                   Text(
                     vehicle.name,
-                    style: const TextStyle(
-                      color: Colors.black,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 20, // Reduced from 24
                       fontWeight: FontWeight.bold,
                       letterSpacing: -0.5,
@@ -238,7 +239,7 @@ class DashboardScreen extends StatelessWidget {
                             : FontWeight.normal,
                         color: v.id == vehicle.id
                             ? AppTheme.iosBlue
-                            : Colors.black,
+                            : Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   );
@@ -248,8 +249,8 @@ class DashboardScreen extends StatelessWidget {
           else
             Text(
               vehicle.name,
-              style: const TextStyle(
-                color: Colors.black,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 letterSpacing: -1,
@@ -265,11 +266,15 @@ class DashboardScreen extends StatelessWidget {
               MaterialPageRoute(builder: (context) => const ProfileScreen()),
             );
           },
-          icon: const CircleAvatar(
-            backgroundColor: Colors.white,
-            foregroundColor: AppTheme.iosBlue,
-            child: Icon(Icons.person),
-          ),
+          icon: provider.profilePhotoPath != null
+              ? CircleAvatar(
+                  backgroundImage: FileImage(File(provider.profilePhotoPath!)),
+                )
+              : CircleAvatar(
+                  backgroundColor: Theme.of(context).cardColor,
+                  foregroundColor: AppTheme.iosBlue,
+                  child: const Icon(Icons.person),
+                ),
         ),
       ],
     );
@@ -391,7 +396,7 @@ class DashboardScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -436,7 +441,7 @@ class DashboardScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
-              color: AppTheme.iosLightGrey,
+              color: Theme.of(context).scaffoldBackgroundColor,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -448,19 +453,19 @@ class DashboardScreen extends StatelessWidget {
                   children: [
                     Text(
                       formatter.format(vehicle.currentOdometer.toInt()),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.5,
-                        color: Colors.black,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Text(
+                    Text(
                       'KM',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.black,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -470,7 +475,7 @@ class DashboardScreen extends StatelessWidget {
                   onPressed: () =>
                       _showUpdateOdoDialog(context, provider, vehicle),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).cardColor,
                     foregroundColor: AppTheme.iosBlue,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(
@@ -514,7 +519,7 @@ class DashboardScreen extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -607,19 +612,22 @@ class DashboardScreen extends StatelessWidget {
 
   IconData _getAestheticIcon(String name) {
     final n = name.toLowerCase();
-    if (n.contains('oli') || n.contains('oil')) return Icons.water_drop_rounded;
+    if (n.contains('oli') || n.contains('oil')) return Icons.oil_barrel_rounded;
     if (n.contains('ban') || n.contains('tire'))
       return Icons.tire_repair_rounded;
     if (n.contains('rem') || n.contains('brake'))
-      return Icons.settings_backup_restore_rounded;
+      return Icons.album; // Disc brake look-alike
     if (n.contains('aki') || n.contains('battery'))
       return Icons.battery_charging_full_rounded;
     if (n.contains('filter') || n.contains('air')) return Icons.air_rounded;
     if (n.contains('busi') || n.contains('spark'))
       return Icons.flash_on_rounded;
-    if (n.contains('rantai') || n.contains('chain')) return Icons.link_rounded;
-    if (n.contains('gir') || n.contains('gear'))
-      return Icons.settings_suggest_rounded;
+    if (n.contains('rantai') ||
+        n.contains('chain') ||
+        n.contains('cvt') ||
+        n.contains('gir') ||
+        n.contains('gear'))
+      return Icons.settings_rounded; // Gear icon
     if (n.contains('radiator') || n.contains('coolant'))
       return Icons.ac_unit_rounded;
     return Icons.build_circle_rounded;
@@ -676,7 +684,11 @@ class DashboardScreen extends StatelessWidget {
               AppTheme.iosGrey,
             ),
             const SizedBox(height: 8),
-            _buildDialogRow('Sisa Jarak', remainingText, Colors.black87),
+            _buildDialogRow(
+              'Sisa Jarak',
+              remainingText,
+              Theme.of(context).colorScheme.onSurface,
+            ),
             const SizedBox(height: 16),
             const Text(
               'Detail Terakhir:',

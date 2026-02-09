@@ -12,14 +12,14 @@ class HistoryScreen extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: AppTheme.iosLightGrey,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           title: const Text(
             'Riwayat',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           centerTitle: true,
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           elevation: 0,
           bottom: const TabBar(
             labelColor: AppTheme.iosBlue,
@@ -65,7 +65,7 @@ class HistoryScreen extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -157,7 +157,7 @@ class HistoryScreen extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(

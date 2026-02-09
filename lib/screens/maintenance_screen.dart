@@ -12,8 +12,8 @@ class MaintenanceScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Maintenance'),
-        backgroundColor: Colors.white,
         centerTitle: true,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       ),
       body: Consumer<VehicleProvider>(
         builder: (context, provider, child) {
@@ -40,7 +40,7 @@ class MaintenanceScreen extends StatelessWidget {
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ListTile(
@@ -142,19 +142,22 @@ class MaintenanceScreen extends StatelessWidget {
 
   IconData _getAestheticIcon(String name) {
     final n = name.toLowerCase();
-    if (n.contains('oli') || n.contains('oil')) return Icons.opacity_rounded;
+    if (n.contains('oli') || n.contains('oil')) return Icons.oil_barrel_rounded;
     if (n.contains('ban') || n.contains('tire'))
       return Icons.tire_repair_rounded;
     if (n.contains('rem') || n.contains('brake'))
-      return Icons.settings_backup_restore_rounded;
+      return Icons.album; // Disc brake look-alike
     if (n.contains('aki') || n.contains('battery'))
       return Icons.battery_charging_full_rounded;
     if (n.contains('filter')) return Icons.air_rounded;
     if (n.contains('busi') || n.contains('spark'))
       return Icons.flash_on_rounded;
-    if (n.contains('rantai') || n.contains('chain')) return Icons.link_rounded;
-    if (n.contains('gir') || n.contains('gear'))
-      return Icons.settings_suggest_rounded;
+    if (n.contains('rantai') ||
+        n.contains('chain') ||
+        n.contains('cvt') ||
+        n.contains('gir') ||
+        n.contains('gear'))
+      return Icons.settings_rounded; // Gear icon
     if (n.contains('radiator') || n.contains('coolant'))
       return Icons.ac_unit_rounded;
     return Icons.build_circle_rounded;

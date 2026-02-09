@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/vehicle_provider.dart';
+import '../providers/theme_provider.dart';
 import '../models/vehicle.dart';
 import '../theme/app_theme.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -10,7 +13,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.iosLightGrey,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: const Text('Profil'), centerTitle: true),
       body: Consumer<VehicleProvider>(
         builder: (context, provider, child) {
@@ -22,16 +25,31 @@ class ProfileScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      child: const Icon(
-                        Icons.person_rounded,
-                        size: 64,
-                        color: AppTheme.iosGrey,
-                      ),
+                      child: provider.profilePhotoPath != null
+                          ? ClipOval(
+                              child: Image.file(
+                                File(provider.profilePhotoPath!),
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.person_rounded,
+                              size: 64,
+                              color: AppTheme.iosGrey,
+                            ),
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -50,9 +68,17 @@ class ProfileScreen extends StatelessWidget {
 
               _buildSection('PROFIL PENGGUNA'),
               _buildSettingsTile(
+                context,
                 icon: Icons.edit_rounded,
-                title: 'Edit Nama Profil',
-                onTap: () => _showEditUsernameDialog(context, provider),
+                title: 'Edit Profil',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EditProfileScreen(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 24),
 
@@ -61,7 +87,7 @@ class ProfileScreen extends StatelessWidget {
                 ...provider.vehicles.map(
                   (vehicle) => Container(
                     margin: const EdgeInsets.only(bottom: 8),
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     child: ListTile(
                       leading: Container(
                         padding: const EdgeInsets.all(8),
@@ -94,13 +120,27 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
               ] else ...[
-                _buildEmptyPlaceholder(),
+                _buildEmptyPlaceholder(context),
               ],
               _buildAddVehicleTile(context),
 
               const SizedBox(height: 32),
               _buildSection('PENGATURAN'),
+              Consumer<ThemeProvider>(
+                builder: (context, themeProvider, child) {
+                  return _buildSettingsTile(
+                    context,
+                    icon: Icons.dark_mode_rounded,
+                    title: 'Mode Gelap',
+                    trailing: Switch.adaptive(
+                      value: themeProvider.isDarkMode,
+                      onChanged: (val) => themeProvider.toggleTheme(val),
+                    ),
+                  );
+                },
+              ),
               _buildSettingsTile(
+                context,
                 icon: Icons.notifications_rounded,
                 title: 'Notifikasi Update Odometer',
                 trailing: Switch.adaptive(
@@ -109,6 +149,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
               _buildSettingsTile(
+                context,
                 icon: Icons.delete_forever_rounded,
                 title: 'Reset Semua Data',
                 textColor: AppTheme.iosRed,
@@ -143,20 +184,25 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyPlaceholder() {
+  Widget _buildEmptyPlaceholder(BuildContext context) {
     return Container(
-      color: Colors.white,
+      margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
-      child: const Center(
-        child: Text(
-          'Belum ada kendaraan',
-          style: TextStyle(color: AppTheme.iosGrey),
-        ),
+      color: Theme.of(context).cardColor,
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Belum ada kendaraan',
+            style: TextStyle(color: AppTheme.iosGrey),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSettingsTile({
+  Widget _buildSettingsTile(
+    BuildContext context, {
     required IconData icon,
     required String title,
     Widget? trailing,
@@ -164,7 +210,7 @@ class ProfileScreen extends StatelessWidget {
     VoidCallback? onTap,
   }) {
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       child: Column(
         children: [
           ListTile(
@@ -194,7 +240,7 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _buildAddVehicleTile(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       child: Column(
         children: [
           const Divider(height: 1, indent: 16),
@@ -267,8 +313,9 @@ class ProfileScreen extends StatelessWidget {
                     onPressed: () {
                       if (nameController.text.isEmpty ||
                           yearController.text.isEmpty ||
-                          odoController.text.isEmpty)
+                          odoController.text.isEmpty) {
                         return;
+                      }
 
                       final provider = Provider.of<VehicleProvider>(
                         context,
@@ -295,19 +342,22 @@ class ProfileScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              _buildInputGroup([
+              _buildInputGroup(context, [
                 _buildSheetTextField(
+                  context,
                   'Nama Kendaraan',
                   nameController,
                   placeholder: 'Misal: Honda Vario',
                 ),
                 _buildSheetTextField(
+                  context,
                   'Tahun',
                   yearController,
                   placeholder: '2023',
                   isNumber: true,
                 ),
                 _buildSheetTextField(
+                  context,
                   'Odometer Saat Ini',
                   odoController,
                   placeholder: '5000',
@@ -323,9 +373,10 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
               Container(
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
                   children: [
@@ -356,17 +407,19 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInputGroup(List<Widget> children) {
+  Widget _buildInputGroup(BuildContext context, List<Widget> children) {
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(children: children),
     );
   }
 
   Widget _buildSheetTextField(
+    BuildContext context,
     String label,
     TextEditingController controller, {
     String? placeholder,
@@ -402,39 +455,6 @@ class ProfileScreen extends StatelessWidget {
         ),
         const Divider(height: 1, indent: 16),
       ],
-    );
-  }
-
-  void _showEditUsernameDialog(BuildContext context, VehicleProvider provider) {
-    final controller = TextEditingController(text: provider.username);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Nama Profil'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Username',
-            border: OutlineInputBorder(),
-          ),
-          textCapitalization: TextCapitalization.words,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (controller.text.trim().isNotEmpty) {
-                provider.setUsername(controller.text.trim());
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
     );
   }
 

@@ -84,12 +84,14 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<VehicleProvider>(context);
     final isOil = widget.item.name.toLowerCase().contains('oli');
 
     return Scaffold(
-      backgroundColor: AppTheme.iosLightGrey,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Edit ${widget.item.name}'),
+        title: const Text('Edit Maintenance'),
+        centerTitle: true,
         actions: [
           TextButton(
             onPressed: () {
@@ -192,7 +194,7 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
           _buildSection('TERAKHIR SERVIS'),
           _buildTextField('KM SAAT SERVIS', _lastOdoController, isNumber: true),
           ListTile(
-            tileColor: Colors.white,
+            tileColor: Theme.of(context).cardColor,
             title: const Text(
               'TANGGAL SERVIS',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
@@ -230,13 +232,13 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
+                backgroundColor: Theme.of(context).cardColor,
                 foregroundColor: AppTheme.iosRed,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                side: const BorderSide(color: Color(0xFFE5E5EA)),
+                side: BorderSide(color: Theme.of(context).dividerColor),
               ),
               child: const Text(
                 'Hapus Komponen',
@@ -269,7 +271,7 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
     bool isNumber = false,
   }) {
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

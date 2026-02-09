@@ -6,6 +6,8 @@ import 'maintenance_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
 
+import '../services/notification_service.dart';
+
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -26,6 +28,12 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Initialize notifications non-blocking
+    NotificationService().init().catchError((e) {
+      debugPrint('Notification init failed: $e');
+    });
+
     // Use addPostFrameCallback to show dialog after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkUsername();

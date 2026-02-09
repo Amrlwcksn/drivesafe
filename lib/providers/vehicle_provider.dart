@@ -17,6 +17,7 @@ class VehicleProvider with ChangeNotifier {
 
   int? _selectedVehicleId; // Track selected vehicle
   String _username = '';
+  String? _profilePhotoPath;
   bool _isReminderEnabled = true; // Default to true
 
   List<Vehicle> get vehicles => _vehicles;
@@ -55,6 +56,7 @@ class VehicleProvider with ChangeNotifier {
   }
 
   String get username => _username;
+  String? get profilePhotoPath => _profilePhotoPath;
 
   VehicleProvider() {
     loadUsername();
@@ -63,6 +65,7 @@ class VehicleProvider with ChangeNotifier {
   Future<void> loadUsername() async {
     final prefs = await SharedPreferences.getInstance();
     _username = prefs.getString('username') ?? '';
+    _profilePhotoPath = prefs.getString('profilePhotoPath');
     _isReminderEnabled = prefs.getBool('isReminderEnabled') ?? true;
 
     // Sync notification status on load
@@ -80,6 +83,17 @@ class VehicleProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('username', name);
     _username = name;
+    notifyListeners();
+  }
+
+  Future<void> setProfilePhoto(String? path) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (path != null) {
+      await prefs.setString('profilePhotoPath', path);
+    } else {
+      await prefs.remove('profilePhotoPath');
+    }
+    _profilePhotoPath = path;
     notifyListeners();
   }
 
@@ -226,6 +240,9 @@ class VehicleProvider with ChangeNotifier {
   }
 
   Future<void> updateOdometer(int vehicleId, double newOdometer) async {
+    print('=== UPDATE ODOMETER START ===');
+    print('Vehicle ID: $vehicleId, New Odometer: $newOdometer');
+
     int index = _vehicles.indexWhere((v) => v.id == vehicleId);
 
     if (index == -1) {
@@ -234,6 +251,7 @@ class VehicleProvider with ChangeNotifier {
     }
 
     Vehicle v = _vehicles[index];
+    print('Current odometer before update: ${v.currentOdometer}');
     double added = newOdometer - v.currentOdometer;
 
     // Create updated vehicle
@@ -245,16 +263,24 @@ class VehicleProvider with ChangeNotifier {
       currentOdometer: newOdometer,
     );
 
+    print('Updated vehicle object created: ${updated.toMap()}');
+
     try {
       // Update database first and wait for completion
-      await _dbService.updateVehicle(updated);
+      print('Calling database updateVehicle...');
+      int rowsAffected = await _dbService.updateVehicle(updated);
+      print('Database update completed. Rows affected: $rowsAffected');
 
       // Update local state only after database update succeeds
       _vehicles[index] = updated;
+      print(
+        'Local state updated. New odometer in memory: ${_vehicles[index].currentOdometer}',
+      );
 
       // Log Distance (Spec 4.3 & 7)
       if (added > 0) {
         final dateStr = DateTime.now().toIso8601String();
+        print('Logging distance: +$added km');
         await _dbService.insertDistanceLog(
           vehicleId,
           dateStr,
@@ -264,9 +290,14 @@ class VehicleProvider with ChangeNotifier {
         );
 
         // Update local state for HistoryScreen
+        // Create mutable copy if list doesn't exist or is read-only
         if (!_distanceLogs.containsKey(vehicleId)) {
           _distanceLogs[vehicleId] = [];
+        } else {
+          // Ensure the list is mutable by creating a new list
+          _distanceLogs[vehicleId] = List.from(_distanceLogs[vehicleId]!);
         }
+
         _distanceLogs[vehicleId]!.insert(0, {
           'date': dateStr,
           'previousOdometer': v.currentOdometer,
@@ -280,8 +311,10 @@ class VehicleProvider with ChangeNotifier {
 
       // Notify listeners to update UI
       notifyListeners();
+      print('=== UPDATE ODOMETER SUCCESS ===');
     } catch (e) {
       print('Error updating odometer: $e');
+      print('=== UPDATE ODOMETER FAILED ===');
       // Revert local state if database update failed
       rethrow;
     }

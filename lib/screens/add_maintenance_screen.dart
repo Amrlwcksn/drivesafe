@@ -30,10 +30,11 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.iosLightGrey,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Tambah Komponen'),
-        backgroundColor: Colors.white,
+        title: const Text('Tambah Item Maintenance'),
+        centerTitle: true,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: AppTheme.iosBlue),
@@ -115,9 +116,10 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
         ),
         const SizedBox(height: 8),
         Container(
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(12),
           ),
           child: TextField(
             controller: controller,
