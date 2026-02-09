@@ -93,8 +93,9 @@ class MaintenanceScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              item.intervalDay > 0
-                                  ? 'Interval: Setiap ${item.intervalDay == 1 ? "Hari" : "${item.intervalDay} Hari"}'
+                              (item.intervalDay > 0 ||
+                                      item.name.toLowerCase().contains('ban'))
+                                  ? 'Interval: Setiap ${item.intervalDay == 0 ? 1 : item.intervalDay} Hari'
                                   : 'Interval: ${item.intervalDistance.toInt()} KM',
                               style: const TextStyle(
                                 color: AppTheme.iosGrey,
@@ -136,9 +137,16 @@ class MaintenanceScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Jarak Tempuh: ${(currentOdo - item.lastServiceOdometer).toInt()} KM',
-                              style: const TextStyle(
-                                color: AppTheme.iosBlue,
+                              (item.intervalDay > 0 ||
+                                      item.name.toLowerCase().contains('ban'))
+                                  ? 'Terakhir Cek: ${DateTime.now().difference(item.lastServiceDate).inDays} Hari lalu'
+                                  : 'Jarak Tempuh: ${(currentOdo - item.lastServiceOdometer).toInt()} KM',
+                              style: TextStyle(
+                                color:
+                                    (item.intervalDay > 0 ||
+                                        item.name.toLowerCase().contains('ban'))
+                                    ? AppTheme.iosOrange
+                                    : AppTheme.iosBlue,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                               ),

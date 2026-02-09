@@ -17,31 +17,33 @@ class AppTheme {
       seedColor: iosBlue,
       primary: iosBlue,
       secondary: iosBlue,
-      surface: Colors.grey[100]!, // Light grey for glass contrast
+      surface: const Color(0xFFF9F9FB),
       background: Colors.white,
+      onSurface: const Color(0xFF1C1C1E),
+      onBackground: const Color(0xFF1C1C1E),
       error: iosRed,
     ),
-    scaffoldBackgroundColor: Colors.transparent, // Transparent for gradient
+    scaffoldBackgroundColor: Colors.transparent,
     cardTheme: CardThemeData(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Colors.white.withOpacity(0.6), // Semi-transparent
+      color: Colors.white.withOpacity(0.9),
     ),
     appBarTheme: const AppBarTheme(
       centerTitle: true,
       elevation: 0,
       backgroundColor: Colors.transparent,
-      foregroundColor: Colors.black,
+      foregroundColor: Color(0xFF1C1C1E),
       titleTextStyle: TextStyle(
-        color: Colors.black,
+        color: Color(0xFF1C1C1E),
         fontSize: 17,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         letterSpacing: -0.5,
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
       elevation: 0,
-      backgroundColor: Colors.white.withOpacity(0.8), // Glassy nav
+      backgroundColor: Colors.white.withOpacity(0.95),
       indicatorColor: iosBlue.withOpacity(0.1),
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
     ),
@@ -61,13 +63,15 @@ class AppTheme {
       primary: iosBlue,
       secondary: iosBlue,
       surface: const Color(0xFF1C1C1E),
-      background: Colors.black,
+      background: const Color(0xFF000000),
+      onSurface: Colors.white,
+      onBackground: Colors.white,
     ),
-    scaffoldBackgroundColor: Colors.transparent, // Transparent for gradient
+    scaffoldBackgroundColor: Colors.transparent,
     cardTheme: CardThemeData(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: const Color(0xFF1C1C1E).withOpacity(0.6),
+      color: const Color(0xFF1C1C1E).withOpacity(0.8),
     ),
     appBarTheme: const AppBarTheme(
       centerTitle: true,
@@ -77,7 +81,7 @@ class AppTheme {
       titleTextStyle: TextStyle(
         color: Colors.white,
         fontSize: 17,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         letterSpacing: -0.5,
       ),
     ),
@@ -88,8 +92,8 @@ class AppTheme {
     ),
     navigationBarTheme: NavigationBarThemeData(
       elevation: 0,
-      backgroundColor: Colors.black.withOpacity(0.8),
-      indicatorColor: iosBlue.withOpacity(0.12),
+      backgroundColor: const Color(0xFF000000).withOpacity(0.9),
+      indicatorColor: iosBlue.withOpacity(0.15),
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
     ),
   );
@@ -105,25 +109,17 @@ class AppTheme {
     }
   }
 
-  // Gradients
+  // Gradients - Modern "Ice White" and "Deep Space"
   static const LinearGradient lightBackgroundGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [
-      Color(0xFFF2F2F7), // Light Grey
-      Color(0xFFE5E5EA), // Slightly Darker
-      Color(0xFFD1D1D6), // Accent
-    ],
+    colors: [Color(0xFFF2F2F7), Color(0xFFFFFFFF), Color(0xFFE5E5EA)],
   );
 
   static const LinearGradient darkBackgroundGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [
-      Color(0xFF000000), // Black
-      Color(0xFF1C1C1E), // Dark Grey
-      Color(0xFF2C2C2E), // Lighter Grey
-    ],
+    colors: [Color(0xFF000000), Color(0xFF1C1C1E), Color(0xFF0A0A0B)],
   );
 
   static BoxDecoration getScaffoldDecoration(BuildContext context) {

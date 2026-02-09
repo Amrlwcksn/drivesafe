@@ -755,7 +755,10 @@ class DashboardScreen extends StatelessWidget {
               _buildInfoRow(
                 context,
                 'Interval Servis',
-                '${NumberFormat('#,###').format(item.intervalDistance)} KM',
+                (item.intervalDay > 0 ||
+                        item.name.toLowerCase().contains('ban'))
+                    ? 'Setiap ${item.intervalDay == 0 ? 1 : item.intervalDay} Hari'
+                    : '${NumberFormat('#,###').format(item.intervalDistance)} KM',
               ),
               _buildInfoRow(
                 context,

@@ -182,12 +182,26 @@ class ProfileScreen extends StatelessWidget {
                 ),
 
                 const SizedBox(height: 48),
-                const Center(
-                  child: Text(
-                    'Versi 1.0.0',
-                    style: TextStyle(color: AppTheme.iosGrey, fontSize: 13),
+                Center(
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Versi 1.0.0',
+                        style: TextStyle(color: AppTheme.iosGrey, fontSize: 13),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Developed by amrlwcksn',
+                        style: TextStyle(
+                          color: AppTheme.iosGrey.withOpacity(0.6),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(height: 24),
               ],
             );
           },

@@ -92,7 +92,9 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
   Widget build(BuildContext context) {
     final provider = Provider.of<VehicleProvider>(context);
     final isOil = widget.item.name.toLowerCase().contains('oli');
-    final isDayInterval = widget.item.intervalDay > 0;
+    final isDayInterval =
+        widget.item.intervalDay > 0 ||
+        widget.item.name.toLowerCase().contains('ban');
 
     return Container(
       decoration: AppTheme.getScaffoldDecoration(context),

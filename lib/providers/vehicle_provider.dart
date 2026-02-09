@@ -157,10 +157,10 @@ class VehicleProvider with ChangeNotifier {
     for (var vehicleId in _maintenanceItems.keys) {
       final items = _maintenanceItems[vehicleId]!;
       for (var item in items) {
-        // Find "Tekanan Ban" items that still have default intervalDay (0)
-        if (item.name == 'Tekanan Ban' && item.intervalDay == 0) {
+        // Find "Ban" items that still have default intervalDay (0) or were distance-based
+        if (item.name.toLowerCase().contains('ban') && item.intervalDay == 0) {
           print(
-            'Migrating Tekanan Ban for vehicle $vehicleId to daily interval...',
+            'Migrating ${item.name} for vehicle $vehicleId to daily interval...',
           );
           await updateMaintenanceItem(
             item.id!,

@@ -73,10 +73,14 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
             ),
             const SizedBox(height: 16),
             _buildTextField(
-              'INTERVAL SERVIS (KM)',
+              _nameController.text.toLowerCase().contains('ban')
+                  ? 'INTERVAL CEK (HARI)'
+                  : 'INTERVAL SERVIS (KM)',
               _intervalController,
               isNumber: true,
-              hint: 'Contoh: 5000',
+              hint: _nameController.text.toLowerCase().contains('ban')
+                  ? 'Contoh: 1'
+                  : 'Contoh: 5000',
             ),
 
             if (_isOil) ...[
@@ -153,14 +157,19 @@ class _AddMaintenanceScreenState extends State<AddMaintenanceScreen> {
 
     final vehicle = provider.vehicles.first; // Default to first vehicle for now
 
+    final isTire = _nameController.text.toLowerCase().contains('ban');
+    final intervalVal =
+        double.tryParse(_intervalController.text) ?? (isTire ? 1 : 5000);
+
     final newItem = MaintenanceItem(
       vehicleId: vehicle.id!,
       name: _nameController.text,
       lastServiceDate: DateTime.now(),
       lastServiceOdometer: vehicle.currentOdometer,
-      intervalDistance: double.tryParse(_intervalController.text) ?? 5000,
-      intervalMonth: 6, // Default default
-      iconCode: 0xe318, // build_circle
+      intervalDistance: isTire ? 0 : intervalVal,
+      intervalDay: isTire ? intervalVal.toInt() : 0,
+      intervalMonth: isTire ? 0 : 6,
+      iconCode: isTire ? 0xf0289 : 0xe318,
       oilBrand: _brandController.text.isNotEmpty ? _brandController.text : null,
       oilVolume: _volumeController.text.isNotEmpty
           ? _volumeController.text
