@@ -25,101 +25,132 @@ class _MainScreenState extends State<MainScreen> {
     const ProfileScreen(),
   ];
 
+  late TextEditingController _usernameController;
+
   @override
   void initState() {
     super.initState();
-
+    _usernameController = TextEditingController();
     // Initialize notifications non-blocking
     NotificationService().init().catchError((e) {
       debugPrint('Notification init failed: $e');
     });
-
-    // Use addPostFrameCallback to show dialog after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkUsername();
-    });
   }
 
-  void _checkUsername() {
-    final provider = context.read<VehicleProvider>();
-    if (provider.username.isEmpty) {
-      _showUsernameDialog(context, provider);
-    }
-  }
-
-  void _showUsernameDialog(BuildContext context, VehicleProvider provider) {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => PopScope(
-        canPop: false,
-        child: AlertDialog(
-          title: const Text('Selamat Datang!'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Silakan masukkan nama Anda untuk memulai.'),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(
-                  labelText: 'Username',
-                  border: OutlineInputBorder(),
-                ),
-                textCapitalization: TextCapitalization.words,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                if (controller.text.trim().isNotEmpty) {
-                  provider.setUsername(controller.text.trim());
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Simpan'),
-            ),
-          ],
-        ),
-      ),
-    );
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    return Consumer<VehicleProvider>(
+      builder: (context, provider, child) {
+        // 1. Loading State
+        if (!provider.isInitialized) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        // 2. Setup Required State
+        if (provider.username.isEmpty) {
+          return _buildSetupScreen(context, provider);
+        }
+
+        // 3. Main App State
+        return Scaffold(
+          body: _screens[_currentIndex],
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home),
+                label: 'Home',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.build_outlined),
+                selectedIcon: Icon(Icons.build),
+                label: 'Maintenance',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.history_outlined),
+                selectedIcon: Icon(Icons.history),
+                label: 'History',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'Profile',
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSetupScreen(BuildContext context, VehicleProvider provider) {
     return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.account_circle,
+                size: 80,
+                color: Colors.blueAccent,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Selamat Datang!',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Silakan masukkan nama Anda untuk memulai menggunakan Drivesafe.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 32),
+              TextField(
+                controller: _usernameController,
+                decoration: const InputDecoration(
+                  labelText: 'Username',
+                  hintText: 'Nama Panggilan',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person),
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    if (_usernameController.text.trim().isNotEmpty) {
+                      provider.setUsername(_usernameController.text.trim());
+                    }
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text('Mulai Berkendara'),
+                  ),
+                ),
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.build_outlined),
-            selectedIcon: Icon(Icons.build),
-            label: 'Maintenance',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.history_outlined),
-            selectedIcon: Icon(Icons.history),
-            label: 'History',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+        ),
       ),
     );
   }

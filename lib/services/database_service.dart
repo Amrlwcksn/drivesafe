@@ -22,23 +22,25 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'drivesafe.db');
     return await openDatabase(
       path,
-      version: 5, // Increment to force upgrade/reset
+      version: 7, // Increment version to force retry
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // User requested "From 0", so we drop all tables on this upgrade to start fresh
-    if (newVersion >= 5) {
-      await db.execute('DROP TABLE IF EXISTS maintenance_logs');
-      await db.execute('DROP TABLE IF EXISTS maintenance_items');
-      await db.execute('DROP TABLE IF EXISTS items'); // Legacy check
-      await db.execute('DROP TABLE IF EXISTS vehicles');
-      await db.execute('DROP TABLE IF EXISTS distance_logs');
-
-      // Re-create from scratch
-      await _onCreate(db, newVersion);
+    if (oldVersion < 7) {
+      // Add intervalDay column to existing table
+      // Check if column exists first to be safe, or just add it
+      // Simple migration:
+      try {
+        await db.execute(
+          'ALTER TABLE maintenance_items ADD COLUMN intervalDay INTEGER DEFAULT 0',
+        );
+      } catch (e) {
+        // Ignore if column already exists (e.g. dev fluctuations)
+        print('Error adding column: $e');
+      }
     }
   }
 
@@ -75,6 +77,7 @@ class DatabaseService {
         lastServiceOdometer REAL,
         intervalDistance REAL,
         intervalMonth INTEGER,
+        intervalDay INTEGER,
         iconCode INTEGER,
         oilBrand TEXT,
         oilVolume TEXT,

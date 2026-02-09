@@ -19,10 +19,12 @@ class VehicleProvider with ChangeNotifier {
   String _username = '';
   String? _profilePhotoPath;
   bool _isReminderEnabled = true; // Default to true
+  bool _isInitialized = false;
 
   List<Vehicle> get vehicles => _vehicles;
   List<MaintenanceLog> get logs => _logs;
   bool get isReminderEnabled => _isReminderEnabled;
+  bool get isInitialized => _isInitialized;
 
   // Get currently selected vehicle
   Vehicle? get selectedVehicle {
@@ -76,6 +78,7 @@ class VehicleProvider with ChangeNotifier {
     // Load vehicles and maintenance data from SQLite
     await fetchVehicles();
 
+    _isInitialized = true;
     notifyListeners();
   }
 
@@ -145,8 +148,29 @@ class VehicleProvider with ChangeNotifier {
       await fetchMaintenanceItems(vehicle.id!);
     }
     await _cleanUpObsoleteItems(); // Remove "Ban Depan/Belakang" if exist
+    await _migrateTirePressureItems(); // Fix existing Tekanan Ban to use daily interval
     await checkMaintenanceStatus();
     notifyListeners();
+  }
+
+  Future<void> _migrateTirePressureItems() async {
+    for (var vehicleId in _maintenanceItems.keys) {
+      final items = _maintenanceItems[vehicleId]!;
+      for (var item in items) {
+        // Find "Tekanan Ban" items that still have default intervalDay (0)
+        if (item.name == 'Tekanan Ban' && item.intervalDay == 0) {
+          print(
+            'Migrating Tekanan Ban for vehicle $vehicleId to daily interval...',
+          );
+          await updateMaintenanceItem(
+            item.id!,
+            intervalDay: 1,
+            intervalDistance: 0,
+            intervalMonth: 0,
+          );
+        }
+      }
+    }
   }
 
   Future<void> fetchLogs() async {
@@ -186,8 +210,9 @@ class VehicleProvider with ChangeNotifier {
         name: 'Tekanan Ban',
         lastServiceDate: DateTime.now(),
         lastServiceOdometer: vehicle.currentOdometer,
-        intervalDistance: 500, // Irrelevant, strictly recurring check
-        intervalMonth: 1,
+        intervalDistance: 0, // Not distance based
+        intervalMonth: 0,
+        intervalDay: 1, // Daily check
         iconCode: 0xf0289,
       ),
     );
@@ -364,6 +389,11 @@ class VehicleProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('username');
 
+    _isInitialized = false;
+    // Reload to reset state properly if needed, or just let it be
+    // For now just notify so UI shows loading or setup
+    loadUsername();
+
     notifyListeners();
   }
 
@@ -408,21 +438,34 @@ class VehicleProvider with ChangeNotifier {
   }
 
   double getItemHealth(MaintenanceItem item, double currentOdometer) {
-    // Defensive check: distance
+    // 1. Check Daily Interval (Priority if set)
+    if (item.intervalDay > 0) {
+      int daysPassed = DateTime.now().difference(item.lastServiceDate).inDays;
+      // If checked today (daysPassed == 0), health is 1.0.
+      // If checked yesterday (daysPassed == 1), health is 0.0 (Time to check again!)
+      // To optional buffer: maybe 1.5 days?
+      // Let's strict: 1 day interval means check every 24h.
+      double progress = 1.0 - (daysPassed / item.intervalDay);
+      return progress.clamp(0.0, 1.0);
+    }
+
+    // 2. Check Distance
     double distProgress = 1.0;
     if (item.intervalDistance > 0) {
       double distanceDiff = currentOdometer - item.lastServiceOdometer;
       distProgress = 1.0 - (distanceDiff / item.intervalDistance);
     }
 
-    // Defensive check: time
+    // 3. Check Month Interval
     double timeProgress = 1.0;
     if (item.intervalMonth > 0) {
       int daysPassed = DateTime.now().difference(item.lastServiceDate).inDays;
       timeProgress = 1.0 - (daysPassed / (item.intervalMonth * 30));
     }
 
-    // Use whichever is lower (more critical)
+    // Use whichever is lower (more critical), ignoring 1.0 (unset/fresh) if others are lower
+    // If only one exists, use it.
+    // Simplifying: Just take min of calculated progresses
     double health = distProgress < timeProgress ? distProgress : timeProgress;
     return health.clamp(0.0, 1.0);
   }
@@ -458,6 +501,8 @@ class VehicleProvider with ChangeNotifier {
     int id, {
     String? name,
     double? intervalDistance,
+    int? intervalDay,
+    int? intervalMonth,
     DateTime? lastServiceDate,
     double? lastServiceOdometer,
     String? oilBrand,
@@ -483,7 +528,8 @@ class VehicleProvider with ChangeNotifier {
         lastServiceDate: lastServiceDate ?? oldItem.lastServiceDate,
         lastServiceOdometer: lastServiceOdometer ?? oldItem.lastServiceOdometer,
         intervalDistance: intervalDistance ?? oldItem.intervalDistance,
-        intervalMonth: oldItem.intervalMonth,
+        intervalMonth: intervalMonth ?? oldItem.intervalMonth,
+        intervalDay: intervalDay ?? oldItem.intervalDay,
         iconCode: oldItem.iconCode,
         oilBrand: oilBrand ?? oldItem.oilBrand,
         oilVolume: oilVolume ?? oldItem.oilVolume,
@@ -611,33 +657,52 @@ class VehicleProvider with ChangeNotifier {
 
     final vehicle = _vehicles.firstWhere((v) => v.id == vehicleId);
 
+    // Daily Interval (Priority)
+    if (item.intervalDay > 0) {
+      final diffDays = DateTime.now().difference(item.lastServiceDate).inDays;
+      final daysRemaining = item.intervalDay - diffDays;
+
+      if (daysRemaining <= 0) return 'CEK SEKARANG';
+      if (daysRemaining == 1) return 'Besok';
+      return '$daysRemaining hari lagi';
+    }
+
     // Distance calculation
     final distanceDiff = vehicle.currentOdometer - item.lastServiceOdometer;
     final distRemaining = item.intervalDistance - distanceDiff;
 
-    // Time calculation
+    // Time calculation (Month)
     final diffDays = DateTime.now().difference(item.lastServiceDate).inDays;
     final totalDaysAvailable = item.intervalMonth * 30;
     final daysRemaining = totalDaysAvailable - diffDays;
 
     // Determine which status to display based on urgency
-    if (distRemaining <= 0 || daysRemaining <= 0) {
+    if ((item.intervalDistance > 0 && distRemaining <= 0) ||
+        (item.intervalMonth > 0 && daysRemaining <= 0)) {
       return 'WAJIB GANTI';
     }
 
     // If it's a "Tekanan Ban" or similar time-sensitive item, prefer showing days
     // or if the time is closer than the distance proportional to their intervals
-    double distProgress = distRemaining / item.intervalDistance;
-    double timeProgress = daysRemaining / totalDaysAvailable;
+    double distProgress = item.intervalDistance > 0
+        ? distRemaining / item.intervalDistance
+        : 1.0;
+    double timeProgress = item.intervalMonth > 0
+        ? daysRemaining / totalDaysAvailable
+        : 1.0;
 
-    if (timeProgress < distProgress) {
+    if (item.intervalMonth > 0 && timeProgress < distProgress) {
       if (daysRemaining < 7) return '$daysRemaining hari lagi';
       final weeks = (daysRemaining / 7).floor();
       if (weeks < 4) return '$weeks minggu lagi';
       return '${(daysRemaining / 30).floor()} bulan lagi';
     }
 
-    return '${distRemaining.toInt()} km lagi';
+    if (item.intervalDistance > 0) {
+      return '${distRemaining.toInt()} km lagi';
+    }
+
+    return 'Aman';
   }
 
   Future<void> checkMaintenanceStatus() async {

@@ -58,7 +58,7 @@ class MaintenanceScreen extends StatelessWidget {
                   },
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 8,
+                    vertical: 12,
                   ),
                   leading: Container(
                     padding: const EdgeInsets.all(8),
@@ -68,20 +68,77 @@ class MaintenanceScreen extends StatelessWidget {
                     ),
                     child: Icon(iconData, color: categoryColor, size: 24),
                   ),
-                  title: Text(
-                    item.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  title: Padding(
+                    padding: const EdgeInsets.only(bottom: 4.0),
+                    child: Text(
+                      item.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                   ),
-                  subtitle: Row(
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.straighten, size: 12, color: AppTheme.iosGrey),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Interval: ${item.intervalDistance.toInt()} KM',
-                        style: const TextStyle(
-                          color: AppTheme.iosGrey,
-                          fontSize: 12,
-                        ),
+                      // Interval
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.straighten,
+                            size: 14,
+                            color: AppTheme.iosGrey,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            item.intervalDay > 0
+                                ? 'Interval: Setiap ${item.intervalDay == 1 ? "Hari" : "${item.intervalDay} Hari"}'
+                                : 'Interval: ${item.intervalDistance.toInt()} KM',
+                            style: const TextStyle(
+                              color: AppTheme.iosGrey,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      // Last Service Date & Odometer
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.history,
+                            size: 14,
+                            color: AppTheme.iosGrey,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'Servis: ${_formatDate(item.lastServiceDate)} • ${item.lastServiceOdometer.toInt()} KM',
+                              style: const TextStyle(
+                                color: AppTheme.iosGrey,
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      // Accumulated Distance
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.directions_car,
+                            size: 14,
+                            color: AppTheme.iosGrey,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Jarak Tempuh: ${(currentOdo - item.lastServiceOdometer).toInt()} KM',
+                            style: const TextStyle(
+                              color: AppTheme.iosBlue,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -98,23 +155,24 @@ class MaintenanceScreen extends StatelessWidget {
                         ),
                         Builder(
                           builder: (context) {
-                            double distanceDiff =
-                                currentOdo - item.lastServiceOdometer;
-                            double progress =
-                                1.0 - (distanceDiff / item.intervalDistance);
-                            progress = progress.clamp(0.0, 1.0);
+                            // Use provider logic for consistency for BOTH day and distance
+                            final health = provider.getItemHealth(
+                              item,
+                              currentOdo,
+                            );
+                            // Invert health because health 1.0 = good (full), 0.0 = bad.
+                            // But usually progress indicators show "how much used".
+                            // If health is "remaining life", then 1.0 is full ring?
+                            // Let's stick to "Remaining Life" concept:
+                            // 1.0 (New) -> Full Ring (Green)
+                            // 0.0 (Bad) -> Empty Ring (Red)
 
-                            Color dynamicColor;
-                            if (progress > 0.5) {
-                              dynamicColor = AppTheme.iosGreen;
-                            } else if (progress > 0.2) {
-                              dynamicColor = AppTheme.iosOrange;
-                            } else {
-                              dynamicColor = AppTheme.iosRed;
-                            }
+                            Color dynamicColor = provider.getItemHealthColor(
+                              health,
+                            );
 
                             return CircularProgressIndicator(
-                              value: progress,
+                              value: health,
                               color: dynamicColor,
                               strokeWidth: 4,
                               strokeCap: StrokeCap.round,
@@ -138,6 +196,10 @@ class MaintenanceScreen extends StatelessWidget {
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   IconData _getAestheticIcon(String name) {

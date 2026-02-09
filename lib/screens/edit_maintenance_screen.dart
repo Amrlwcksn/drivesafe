@@ -25,6 +25,7 @@ class EditMaintenanceScreen extends StatefulWidget {
 class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
   late TextEditingController _nameController;
   late TextEditingController _intervalController;
+  late TextEditingController _intervalDayController; // New controller
   late TextEditingController _lastOdoController;
   late TextEditingController _brandController;
   late TextEditingController _volumeController;
@@ -36,6 +37,9 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
     _nameController = TextEditingController(text: widget.item.name);
     _intervalController = TextEditingController(
       text: widget.item.intervalDistance.toInt().toString(),
+    );
+    _intervalDayController = TextEditingController(
+      text: widget.item.intervalDay.toString(),
     );
     _lastOdoController = TextEditingController(
       text: widget.item.lastServiceOdometer.toInt().toString(),
@@ -54,6 +58,7 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
   void dispose() {
     _nameController.dispose();
     _intervalController.dispose();
+    _intervalDayController.dispose();
     _lastOdoController.dispose();
     _brandController.dispose();
     _volumeController.dispose();
@@ -86,6 +91,7 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
   Widget build(BuildContext context) {
     final provider = Provider.of<VehicleProvider>(context);
     final isOil = widget.item.name.toLowerCase().contains('oli');
+    final isDayInterval = widget.item.intervalDay > 0;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -123,11 +129,6 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
                 listen: false,
               );
 
-              // Here we would ideally have an updateMaintenanceItem method in the provider.
-              // For now, if we are editing the core item data, we'll need to add that logic.
-              // Taking a simple approach: if they change date/odo, we trigger a 'completion' or update.
-
-              // For this task, let's just implement the UI and simple update logic.
               // 1. Update the Item (Definition & Status)
               provider.updateMaintenanceItem(
                 widget.item.id!,
@@ -135,6 +136,9 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
                 intervalDistance:
                     double.tryParse(_intervalController.text) ??
                     widget.item.intervalDistance,
+                intervalDay:
+                    int.tryParse(_intervalDayController.text) ??
+                    widget.item.intervalDay,
                 lastServiceOdometer:
                     double.tryParse(_lastOdoController.text) ??
                     widget.item.lastServiceOdometer,
@@ -151,14 +155,6 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
 
               if (newLastOdo != widget.item.lastServiceOdometer ||
                   _selectedDate != widget.item.lastServiceDate) {
-                // Create a log entry
-                // We need to import MaintenanceLog first.
-                // Since we can't easily add imports in this partial tool,
-                // we'll rely on VehicleProvider to allow a helper method or
-                // assume we can use the provider's logMaintenance with a constructed object.
-                // NOTE: EditMaintenanceScreen imports MaintenanceItem but likely not MaintenanceLog?
-                // Step 2357 shows imports: provider, item, theme, intl. NO maintenance_log.dart.
-                // I need to add the import first!
                 final log = MaintenanceLog(
                   maintenanceItemId: widget.item.id!,
                   date: _selectedDate,
@@ -188,7 +184,19 @@ class _EditMaintenanceScreenState extends State<EditMaintenanceScreen> {
           const SizedBox(height: 32),
           _buildSection('INFORMASI UMUM'),
           _buildTextField('NAMA KOMPONEN', _nameController),
-          _buildTextField('INTERVAL (KM)', _intervalController, isNumber: true),
+          // Conditionally show Interval field based on type
+          if (isDayInterval)
+            _buildTextField(
+              'INTERVAL (HARI)',
+              _intervalDayController,
+              isNumber: true,
+            )
+          else
+            _buildTextField(
+              'INTERVAL (KM)',
+              _intervalController,
+              isNumber: true,
+            ),
 
           const SizedBox(height: 32),
           _buildSection('TERAKHIR SERVIS'),

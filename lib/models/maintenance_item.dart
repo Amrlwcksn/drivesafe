@@ -6,6 +6,7 @@ class MaintenanceItem {
   final double lastServiceOdometer;
   final double intervalDistance;
   final int intervalMonth;
+  final int intervalDay; // New field for daily checks
 
   final int iconCode;
   final String? oilBrand;
@@ -19,6 +20,7 @@ class MaintenanceItem {
     required this.lastServiceOdometer,
     required this.intervalDistance,
     required this.intervalMonth,
+    this.intervalDay = 0,
     this.iconCode = 0xe1ab, // Default build icon
     this.oilBrand,
     this.oilVolume,
@@ -33,6 +35,7 @@ class MaintenanceItem {
       'lastServiceOdometer': lastServiceOdometer,
       'intervalDistance': intervalDistance,
       'intervalMonth': intervalMonth,
+      'intervalDay': intervalDay,
       'iconCode': iconCode,
       'oilBrand': oilBrand,
       'oilVolume': oilVolume,
@@ -49,6 +52,7 @@ class MaintenanceItem {
           (map['lastServiceOdometer'] as num?)?.toDouble() ?? 0.0,
       intervalDistance: (map['intervalDistance'] as num?)?.toDouble() ?? 0.0,
       intervalMonth: map['intervalMonth'] ?? 0,
+      intervalDay: map['intervalDay'] ?? 0,
       iconCode: map['iconCode'] ?? 0xe1ab,
       oilBrand: map['oilBrand'],
       oilVolume: map['oilVolume'],
